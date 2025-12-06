@@ -845,21 +845,28 @@
                 <button onclick="toggleApiKey()" class="small" id="toggleKeyBtn">Show</button>
                 <button onclick="validateApiKey()" class="primary">Validate</button>
             </div>
+            <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" id="rememberKey" style="flex: none; width: 16px; height: 16px; cursor: pointer;" onchange="toggleRememberKey()" />
+                <label for="rememberKey" style="font-size: 0.75rem; color: var(--amber-dim); cursor: pointer;">Remember key in browser (localStorage)</label>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--cinnabar); margin-top: 0.5rem; opacity: 0.8;" id="storageWarning" class="hidden">
+                ⚠️ Warning: Only use this for test keys. Never store production secrets in localStorage.
+            </div>
             <div class="validation-result" id="keyValidationResult"></div>
         </section>
 
         <!-- Tabs -->
         <div class="tabs">
-            <button class="tab active" onclick="showTab('image')">
+            <button class="tab active" onclick="showTab('image', this)" aria-label="Image Generation">
                 <span class="tab-icon">◈</span>Image
             </button>
-            <button class="tab" onclick="showTab('video')">
+            <button class="tab" onclick="showTab('video', this)" aria-label="Video Generation">
                 <span class="tab-icon">▶</span>Video
             </button>
-            <button class="tab" onclick="showTab('text')">
+            <button class="tab" onclick="showTab('text', this)" aria-label="Text Generation">
                 <span class="tab-icon">¶</span>Text
             </button>
-            <button class="tab" onclick="showTab('troubleshoot')">
+            <button class="tab" onclick="showTab('troubleshoot', this)" aria-label="Diagnostics">
                 <span class="tab-icon">⚙</span>Diagnostics
             </button>
         </div>
@@ -905,6 +912,7 @@ Do not include any text, labels, or watermarks in the image.</textarea>
             <div class="cost-display" id="imageCostDisplay">
                 <span class="label">Cost per Image</span>
                 <span class="value" id="imagePricing">$0.039</span>
+                <a href="https://ai.google.dev/pricing" target="_blank" style="font-size: 0.6rem; color: var(--azurite); margin-left: 0.5rem;">Verify pricing ↗</a>
             </div>
 
             <button onclick="testImageGeneration()" id="imageTestBtn" class="primary">
@@ -998,6 +1006,7 @@ Time Period: 150 million years ago</textarea>
             <div class="cost-display" id="videoCostEstimate">
                 <span class="label">Est. Cost</span>
                 <span class="value" id="videoPricing">$0.90</span>
+                <a href="https://ai.google.dev/pricing" target="_blank" style="font-size: 0.6rem; color: var(--azurite); margin-left: 0.5rem;">Verify pricing ↗</a>
             </div>
 
             <button onclick="testVideoGeneration()" id="videoTestBtn" class="primary">
@@ -1117,6 +1126,7 @@ Time Period: 150 million years ago</textarea>
             <div class="cost-display" id="textCostDisplay">
                 <span class="label">Pricing</span>
                 <span class="value" id="textPricing">$0.30/1M in · $2.50/1M out</span>
+                <a href="https://ai.google.dev/pricing" target="_blank" style="font-size: 0.6rem; color: var(--azurite); margin-left: 0.5rem;">Verify pricing ↗</a>
             </div>
 
             <button onclick="testTextGeneration()" id="textTestBtn" class="primary">
@@ -1189,10 +1199,20 @@ Time Period: 150 million years ago</textarea>
                 </div>
             </div>
 
-            <button onclick="runDiagnostics()" class="primary" style="margin-bottom: 1.5rem;">
-                Run System Diagnostics
-            </button>
+            <div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                <button onclick="runDiagnostics()" class="primary">
+                    Run System Diagnostics
+                </button>
+                <button onclick="fetchAvailableModels()">
+                    Fetch Available Models
+                </button>
+            </div>
             <div class="logs" id="diagnosticsLogs" style="min-height: 100px;"></div>
+            
+            <div id="availableModelsSection" class="hidden" style="margin-top: 1.5rem;">
+                <h4 class="section-title">Available Models (from API)</h4>
+                <div class="logs" id="modelsListLogs" style="max-height: 300px;"></div>
+            </div>
 
             <h4 class="section-title">Error Reference</h4>
             <table class="error-table">
@@ -1292,8 +1312,10 @@ Time Period: 150 million years ago</textarea>
         <footer class="footer">
             <p>
                 Gemini API Tester · 
-                <a href="https://ai.google.dev/gemini-api/docs/troubleshooting" target="_blank">API Documentation</a> · 
-                <a href="https://discuss.ai.google.dev" target="_blank">Developer Forum</a>
+                <a href="https://ai.google.dev/gemini-api/docs" target="_blank">API Docs</a> · 
+                <a href="https://ai.google.dev/pricing" target="_blank">Pricing</a> · 
+                <a href="https://aistudio.google.com/" target="_blank">Get API Key</a> · 
+                <a href="https://ai.google.dev/gemini-api/docs/models/gemini" target="_blank">Models</a>
             </p>
         </footer>
     </div>
@@ -1474,11 +1496,11 @@ Time Period: 150 million years ago</textarea>
             document.getElementById(logsId).innerHTML = '';
         }
 
-        function showTab(tabName) {
+        function showTab(tabName, tabElement) {
             document.querySelectorAll('.test-panel').forEach(panel => panel.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.getElementById(`${tabName}-panel`).classList.add('active');
-            event.target.closest('.tab').classList.add('active');
+            tabElement.classList.add('active');
         }
 
         function setStatus(elementId, status, text) {
@@ -1537,11 +1559,56 @@ Time Period: 150 million years ago</textarea>
             document.getElementById('videoPricing').textContent = `$${cost}`;
         }
 
+        // ============================================
+        // LOCAL STORAGE FOR API KEY
+        // ============================================
+        function loadSavedApiKey() {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            const rememberEnabled = localStorage.getItem('gemini_remember_key') === 'true';
+            
+            if (savedKey && rememberEnabled) {
+                document.getElementById('apiKey').value = savedKey;
+                document.getElementById('rememberKey').checked = true;
+                document.getElementById('storageWarning').classList.remove('hidden');
+            }
+        }
+
+        function toggleRememberKey() {
+            const checkbox = document.getElementById('rememberKey');
+            const warning = document.getElementById('storageWarning');
+            
+            if (checkbox.checked) {
+                warning.classList.remove('hidden');
+                localStorage.setItem('gemini_remember_key', 'true');
+                const apiKey = getApiKey();
+                if (apiKey) {
+                    localStorage.setItem('gemini_api_key', apiKey);
+                }
+            } else {
+                warning.classList.add('hidden');
+                localStorage.removeItem('gemini_remember_key');
+                localStorage.removeItem('gemini_api_key');
+            }
+        }
+
+        function saveApiKeyIfEnabled() {
+            if (document.getElementById('rememberKey').checked) {
+                const apiKey = getApiKey();
+                if (apiKey) {
+                    localStorage.setItem('gemini_api_key', apiKey);
+                }
+            }
+        }
+
         // Initialize on load
         window.addEventListener('DOMContentLoaded', () => {
             updateTextModelInfo();
             updateImageModelInfo();
             updateVideoModelInfo();
+            loadSavedApiKey();
+            
+            // Save API key when it changes
+            document.getElementById('apiKey').addEventListener('input', saveApiKeyIfEnabled);
         });
 
         // ============================================
@@ -1651,9 +1718,24 @@ Time Period: 150 million years ago</textarea>
                     addLog('imageLogs', `Image generated: ${imageData.mimeType}`, 'success');
                     addLog('imageLogs', `Size: ${(imageData.data.length * 0.75 / 1024).toFixed(2)} KB`, 'info');
 
+                    const previewContainer = document.getElementById('imagePreview');
+                    previewContainer.innerHTML = '';
+                    
                     const imgEl = document.createElement('img');
                     imgEl.src = `data:${imageData.mimeType};base64,${imageData.data}`;
-                    document.getElementById('imagePreview').appendChild(imgEl);
+                    previewContainer.appendChild(imgEl);
+                    
+                    // Add download button
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.textContent = 'Download Image';
+                    downloadBtn.style.marginTop = '1rem';
+                    downloadBtn.onclick = () => {
+                        const link = document.createElement('a');
+                        link.href = imgEl.src;
+                        link.download = `gemini-image-${Date.now()}.png`;
+                        link.click();
+                    };
+                    previewContainer.appendChild(downloadBtn);
                 } else {
                     const textPart = candidates?.[0]?.content?.parts?.find(p => p.text);
                     if (textPart) {
@@ -1793,11 +1875,26 @@ Time Period: 150 million years ago</textarea>
                                 const videoBlob = await videoResponse.blob();
                                 const videoUrl = URL.createObjectURL(videoBlob);
 
+                                const previewContainer = document.getElementById('videoPreview');
+                                previewContainer.innerHTML = '';
+                                
                                 const videoEl = document.createElement('video');
                                 videoEl.src = videoUrl;
                                 videoEl.controls = true;
                                 videoEl.style.maxWidth = '100%';
-                                document.getElementById('videoPreview').appendChild(videoEl);
+                                previewContainer.appendChild(videoEl);
+                                
+                                // Add download button
+                                const downloadBtn = document.createElement('button');
+                                downloadBtn.textContent = 'Download Video';
+                                downloadBtn.style.marginTop = '1rem';
+                                downloadBtn.onclick = () => {
+                                    const link = document.createElement('a');
+                                    link.href = videoUrl;
+                                    link.download = `gemini-video-${Date.now()}.mp4`;
+                                    link.click();
+                                };
+                                previewContainer.appendChild(downloadBtn);
 
                                 addLog('videoLogs', `Downloaded: ${(videoBlob.size / 1024 / 1024).toFixed(2)} MB`, 'success');
                                 setStatus('videoStatus', 'success', 'COMPLETE');
@@ -1859,8 +1956,15 @@ Time Period: 150 million years ago</textarea>
             addLog('textLogs', 'Initializing text generation...', 'info');
             addLog('textLogs', `Model: ${modelId}`, 'info');
             addLog('textLogs', `Config: temp=${temperature}, maxTokens=${maxTokens}`, 'info');
+            
+            // Validate thinking budget
             if (model.supportsThinking && thinkingBudget > 0) {
                 addLog('textLogs', `Thinking budget: ${thinkingBudget} tokens`, 'info');
+                if (thinkingBudget >= maxTokens) {
+                    addLog('textLogs', '⚠️ Warning: Thinking budget >= max tokens. May produce no text output.', 'warning');
+                } else if (thinkingBudget > maxTokens * 0.8) {
+                    addLog('textLogs', '⚠️ Thinking budget uses >80% of max tokens. Text output may be truncated.', 'warning');
+                }
             }
 
             const generationConfig = {
@@ -1979,6 +2083,7 @@ Time Period: 150 million years ago</textarea>
                 entry.className = `log-entry ${type}`;
                 entry.innerHTML = `<span class="log-timestamp">${getTimestamp()}</span><span>${msg}</span>`;
                 logs.appendChild(entry);
+                logs.scrollTop = logs.scrollHeight;
             };
 
             if (!apiKey) {
@@ -1988,12 +2093,23 @@ Time Period: 150 million years ago</textarea>
 
             addDiagLog('Starting diagnostics...', 'info');
 
+            // Check browser capabilities
+            addDiagLog('Checking browser capabilities...', 'info');
+            addDiagLog(`✓ Fetch API: ${typeof fetch !== 'undefined' ? 'Available' : 'Not available'}`, 'success');
+            addDiagLog(`✓ Clipboard API: ${navigator.clipboard ? 'Available' : 'Not available'}`, 'success');
+            addDiagLog(`✓ LocalStorage: ${typeof localStorage !== 'undefined' ? 'Available' : 'Not available'}`, 'success');
+
             try {
                 addDiagLog('Validating API key...', 'info');
                 const response = await fetch(`${GEMINI_API_BASE_URL}/models?key=${apiKey}`);
                 if (response.ok) {
                     const data = await response.json();
-                    addDiagLog(`✓ API key valid — ${data.models?.length || 0} models`, 'success');
+                    const models = data.models || [];
+                    addDiagLog(`✓ API key valid — ${models.length} models accessible`, 'success');
+                    
+                    // Count model types
+                    const genModels = models.filter(m => m.supportedGenerationMethods?.includes('generateContent'));
+                    addDiagLog(`  → ${genModels.length} generation models`, 'info');
                 } else {
                     const error = await response.json();
                     addDiagLog(`✗ API key invalid: ${error.error?.message}`, 'error');
@@ -2004,28 +2120,96 @@ Time Period: 150 million years ago</textarea>
                 return;
             }
 
+            // Check specific models used in this tool
             const modelsToCheck = [
                 { name: 'gemini-2.5-flash', type: 'Text' },
                 { name: 'gemini-2.5-flash-image', type: 'Image' },
                 { name: 'veo-3.1-fast-generate-preview', type: 'Video' },
             ];
 
+            addDiagLog('--- MODEL HEALTH CHECKS ---', 'info');
             for (const model of modelsToCheck) {
                 try {
-                    addDiagLog(`Checking ${model.type}: ${model.name}...`, 'info');
                     const response = await fetch(`${GEMINI_API_BASE_URL}/models/${model.name}?key=${apiKey}`);
                     if (response.ok) {
-                        addDiagLog(`✓ ${model.type} model available`, 'success');
+                        addDiagLog(`✓ ${model.type}: ${model.name}`, 'success');
                     } else {
                         const error = await response.json();
-                        addDiagLog(`⚠ ${model.type}: ${error.error?.message}`, 'warning');
+                        addDiagLog(`⚠ ${model.type}: ${model.name} — ${error.error?.message}`, 'warning');
                     }
                 } catch (e) {
                     addDiagLog(`✗ ${model.name}: ${e.message}`, 'error');
                 }
             }
 
-            addDiagLog('Diagnostics complete', 'success');
+            addDiagLog('--- END DIAGNOSTICS ---', 'success');
+        }
+
+        // ============================================
+        // FETCH AVAILABLE MODELS
+        // ============================================
+        async function fetchAvailableModels() {
+            const apiKey = getApiKey();
+            const section = document.getElementById('availableModelsSection');
+            const logs = document.getElementById('modelsListLogs');
+            
+            if (!apiKey) {
+                alert('Please enter your API key first');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            logs.innerHTML = '';
+
+            const addModelLog = (msg, type = 'info') => {
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                entry.innerHTML = `<span>${msg}</span>`;
+                logs.appendChild(entry);
+            };
+
+            try {
+                addModelLog('Fetching models from API...', 'info');
+                
+                const response = await fetch(`${GEMINI_API_BASE_URL}/models?key=${apiKey}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    addModelLog(`Error: ${error.error?.message}`, 'error');
+                    return;
+                }
+
+                const data = await response.json();
+                const models = data.models || [];
+                
+                addModelLog(`Found ${models.length} total models:`, 'success');
+                addModelLog('', 'info');
+                
+                // Group by capability
+                const genModels = models.filter(m => m.supportedGenerationMethods?.includes('generateContent'));
+                const embedModels = models.filter(m => m.supportedGenerationMethods?.includes('embedContent'));
+                
+                addModelLog('=== GENERATION MODELS (generateContent) ===', 'info');
+                genModels.forEach(m => {
+                    const name = m.name.replace('models/', '');
+                    const desc = m.description?.substring(0, 60) || '';
+                    addModelLog(`• ${name}`, 'success');
+                    if (desc) addModelLog(`  ${desc}...`, 'info');
+                });
+                
+                addModelLog('', 'info');
+                addModelLog('=== EMBEDDING MODELS ===', 'info');
+                embedModels.forEach(m => {
+                    const name = m.name.replace('models/', '');
+                    addModelLog(`• ${name}`, 'info');
+                });
+                
+                addModelLog('', 'info');
+                addModelLog('Tip: Copy model names above to add to the dropdowns.', 'info');
+                
+            } catch (e) {
+                addModelLog(`Network error: ${e.message}`, 'error');
+            }
         }
     </script>
 </body>
