@@ -844,6 +844,7 @@
                 <input type="password" id="apiKey" placeholder="Enter Gemini API Key (AIza...)" />
                 <button onclick="toggleApiKey()" class="small" id="toggleKeyBtn">Show</button>
                 <button onclick="validateApiKey()" class="primary">Validate</button>
+                <button onclick="refreshModels()" class="small" id="refreshModelsBtn" title="Refresh available models from API" style="min-width: 36px;">⟳</button>
             </div>
             <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
                 <input type="checkbox" id="rememberKey" style="flex: none; width: 16px; height: 16px; cursor: pointer;" onchange="toggleRememberKey()" />
@@ -1329,64 +1330,381 @@ Time Period: 150 million years ago</textarea>
 
         const POLL_INTERVAL_MS = 10000;
         const MAX_POLL_ATTEMPTS = 30;
+        const MODEL_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-        // Model configurations with pricing
-        const TEXT_MODELS = {
-            'gemini-2.5-flash': {
-                name: 'Gemini 2.5 Flash',
-                inputPrice: 0.30,
-                outputPrice: 2.50,
-                supportsThinking: true,
-                description: 'Hybrid reasoning model with 1M context'
+        // ============================================
+        // MODEL CONFIGURATION PRESETS (Fallbacks & Pricing)
+        // These are used when API doesn't provide info
+        // ============================================
+        const MODEL_PRESETS = {
+            // Text models - pricing per 1M tokens
+            text: {
+                'gemini-2.5-flash': { inputPrice: 0.30, outputPrice: 2.50, supportsThinking: true },
+                'gemini-2.5-flash-lite': { inputPrice: 0.10, outputPrice: 0.40, supportsThinking: true },
+                'gemini-2.5-pro': { inputPrice: 2.50, outputPrice: 15.00, supportsThinking: true },
+                'gemini-3-pro-preview': { inputPrice: 2.00, outputPrice: 12.00, supportsThinking: true },
+                // Default for unknown text models
+                '_default': { inputPrice: 0.50, outputPrice: 2.50, supportsThinking: false }
             },
-            'gemini-2.5-flash-preview-09-2025': {
-                name: 'Gemini 2.5 Flash Preview',
-                inputPrice: 0.30,
-                outputPrice: 2.50,
-                supportsThinking: true,
-                description: 'Latest preview for agentic use cases'
+            // Image models - pricing per image
+            image: {
+                'gemini-2.5-flash-image': { pricePerImage: 0.039 },
+                'gemini-3-pro-image-preview': { pricePerImage: 0.134 },
+                'imagen-4': { pricePerImage: 0.03 },
+                'imagen-4-ultra': { pricePerImage: 0.08 },
+                '_default': { pricePerImage: 0.05 }
             },
-            'gemini-2.5-flash-lite': {
-                name: 'Gemini 2.5 Flash-Lite',
-                inputPrice: 0.10,
-                outputPrice: 0.40,
-                supportsThinking: true,
-                description: 'Most cost-effective model'
-            },
-            'gemini-3-pro-preview': {
-                name: 'Gemini 3 Pro Preview',
-                inputPrice: 2.00,
-                outputPrice: 12.00,
-                supportsThinking: true,
-                description: 'Best multimodal understanding'
+            // Video models - pricing per second
+            video: {
+                'veo-3.1-fast-generate-preview': { pricePerSecond: 0.15 },
+                'veo-3.1-generate-preview': { pricePerSecond: 0.40 },
+                'veo-3': { pricePerSecond: 0.35 },
+                'veo-2': { pricePerSecond: 0.25 },
+                '_default': { pricePerSecond: 0.20 }
             }
+        };
+
+        // Configuration options per model type (not available from API)
+        const TYPE_CONFIG_OPTIONS = {
+            image: {
+                aspectRatios: ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9']
+            },
+            video: {
+                aspectRatios: ['16:9', '9:16', '1:1'],
+                resolutions: ['720p', '1080p'],
+                durations: [4, 5, 6, 8]
+            },
+            text: {
+                temperatures: [0.0, 0.3, 0.7, 1.0, 1.5],
+                maxTokenOptions: [512, 1024, 2048, 4096, 8192, 16384],
+                thinkingBudgets: [0, 1024, 2048, 4096, 8192, 16384, 32768]
+            }
+        };
+
+        // ============================================
+        // DYNAMIC MODEL STATE
+        // ============================================
+        let discoveredModels = {
+            text: [],
+            image: [],
+            video: [],
+            embedding: [],
+            other: [],
+            lastFetched: null,
+            raw: [] // All models from API
+        };
+
+        // Legacy static models (used as fallback)
+        const TEXT_MODELS = {
+            'gemini-2.5-flash': { name: 'Gemini 2.5 Flash', inputPrice: 0.30, outputPrice: 2.50, supportsThinking: true, description: 'Hybrid reasoning model with 1M context' },
+            'gemini-2.5-flash-lite': { name: 'Gemini 2.5 Flash-Lite', inputPrice: 0.10, outputPrice: 0.40, supportsThinking: true, description: 'Most cost-effective model' },
+            'gemini-3-pro-preview': { name: 'Gemini 3 Pro Preview', inputPrice: 2.00, outputPrice: 12.00, supportsThinking: true, description: 'Best multimodal understanding' }
         };
 
         const IMAGE_MODELS = {
-            'gemini-2.5-flash-image': {
-                name: 'Gemini 2.5 Flash Image',
-                pricePerImage: 0.039,
-                description: 'Fast, flexible image generation'
-            },
-            'gemini-3-pro-image-preview': {
-                name: 'Gemini 3 Pro Image Preview',
-                pricePerImage: 0.134,
-                description: 'Premium image generation'
-            }
+            'gemini-2.5-flash-image': { name: 'Gemini 2.5 Flash Image', pricePerImage: 0.039, description: 'Fast, flexible image generation' },
+            'gemini-3-pro-image-preview': { name: 'Gemini 3 Pro Image Preview', pricePerImage: 0.134, description: 'Premium image generation' }
         };
 
         const VIDEO_MODELS = {
-            'veo-3.1-fast-generate-preview': {
-                name: 'Veo 3.1 Fast',
-                pricePerSecond: 0.15,
-                description: 'Fast video with audio'
-            },
-            'veo-3.1-generate-preview': {
-                name: 'Veo 3.1 Standard',
-                pricePerSecond: 0.40,
-                description: 'High quality video with audio'
-            }
+            'veo-3.1-fast-generate-preview': { name: 'Veo 3.1 Fast', pricePerSecond: 0.15, description: 'Fast video with audio' },
+            'veo-3.1-generate-preview': { name: 'Veo 3.1 Standard', pricePerSecond: 0.40, description: 'High quality video with audio' }
         };
+
+        // ============================================
+        // MODEL DETECTION & CLASSIFICATION
+        // ============================================
+        function detectModelType(model) {
+            const name = (model.name || model.baseModelId || '').replace('models/', '').toLowerCase();
+            const methods = model.supportedGenerationMethods || [];
+            
+            // Video models (Veo family)
+            if (name.startsWith('veo-') || name.includes('veo')) {
+                return 'video';
+            }
+            
+            // Image generation models
+            if (name.includes('-image') || name.startsWith('imagen-')) {
+                return 'image';
+            }
+            
+            // Embedding models
+            if (name.includes('embedding') || methods.includes('embedContent') && !methods.includes('generateContent')) {
+                return 'embedding';
+            }
+            
+            // Text/multimodal generation models
+            if (methods.includes('generateContent')) {
+                return 'text';
+            }
+            
+            return 'other';
+        }
+
+        function parseModelInfo(model) {
+            const name = (model.name || '').replace('models/', '');
+            const type = detectModelType(model);
+            const displayName = model.displayName || formatModelName(name);
+            const isPreview = name.includes('preview') || name.includes('experimental');
+            
+            // Get pricing from presets
+            const typePresets = MODEL_PRESETS[type] || {};
+            const preset = typePresets[name] || typePresets['_default'] || {};
+            
+            return {
+                id: name,
+                name: name,
+                displayName: displayName + (isPreview ? ' (preview)' : ''),
+                type: type,
+                description: model.description || '',
+                version: model.version || '',
+                inputTokenLimit: model.inputTokenLimit,
+                outputTokenLimit: model.outputTokenLimit,
+                supportsThinking: model.thinking === true || preset.supportsThinking === true,
+                supportedMethods: model.supportedGenerationMethods || [],
+                isPreview: isPreview,
+                // Pricing
+                ...preset
+            };
+        }
+
+        function formatModelName(modelId) {
+            // Convert gemini-2.5-flash-image to "Gemini 2.5 Flash Image"
+            return modelId
+                .split('-')
+                .map(part => {
+                    if (/^\d/.test(part)) return part; // Keep version numbers as-is
+                    return part.charAt(0).toUpperCase() + part.slice(1);
+                })
+                .join(' ');
+        }
+
+        // ============================================
+        // MODEL DISCOVERY & CACHING
+        // ============================================
+        async function fetchAndCacheModels(forceRefresh = false) {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                console.log('No API key, using fallback models');
+                return false;
+            }
+
+            // Check cache
+            const cached = localStorage.getItem('gemini_models_cache');
+            if (cached && !forceRefresh) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    if (parsed.timestamp && Date.now() - parsed.timestamp < MODEL_CACHE_TTL_MS) {
+                        discoveredModels = parsed.data;
+                        discoveredModels.lastFetched = new Date(parsed.timestamp);
+                        console.log('Loaded models from cache:', discoveredModels);
+                        return true;
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse cached models:', e);
+                }
+            }
+
+            try {
+                const response = await fetch(`${GEMINI_API_BASE_URL}/models?key=${apiKey}`);
+                if (!response.ok) {
+                    console.error('Failed to fetch models:', response.status);
+                    return false;
+                }
+
+                const data = await response.json();
+                const models = data.models || [];
+                
+                // Reset categories
+                discoveredModels = {
+                    text: [],
+                    image: [],
+                    video: [],
+                    embedding: [],
+                    other: [],
+                    lastFetched: new Date(),
+                    raw: models
+                };
+
+                // Classify each model
+                models.forEach(model => {
+                    const parsed = parseModelInfo(model);
+                    const category = parsed.type;
+                    if (discoveredModels[category]) {
+                        discoveredModels[category].push(parsed);
+                    }
+                });
+
+                // Sort each category by name
+                Object.keys(discoveredModels).forEach(key => {
+                    if (Array.isArray(discoveredModels[key])) {
+                        discoveredModels[key].sort((a, b) => a.id.localeCompare(b.id));
+                    }
+                });
+
+                // Cache results
+                localStorage.setItem('gemini_models_cache', JSON.stringify({
+                    timestamp: Date.now(),
+                    data: discoveredModels
+                }));
+
+                console.log('Fetched and cached models:', discoveredModels);
+                return true;
+
+            } catch (e) {
+                console.error('Error fetching models:', e);
+                return false;
+            }
+        }
+
+        // ============================================
+        // DYNAMIC DROPDOWN POPULATION
+        // ============================================
+        function populateModelDropdowns() {
+            populateTextModels();
+            populateImageModels();
+            populateVideoModels();
+            updateModelRefreshStatus();
+        }
+
+        function populateTextModels() {
+            const select = document.getElementById('textModel');
+            const models = discoveredModels.text.length > 0 ? discoveredModels.text : 
+                Object.entries(TEXT_MODELS).map(([id, m]) => ({ id, ...m, displayName: m.name }));
+            
+            const currentValue = select.value;
+            select.innerHTML = '';
+            
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.displayName || model.name || model.id;
+                option.title = model.description || '';
+                select.appendChild(option);
+            });
+
+            // Restore selection or select first
+            if (models.some(m => m.id === currentValue)) {
+                select.value = currentValue;
+            }
+            updateTextModelInfo();
+        }
+
+        function populateImageModels() {
+            const select = document.getElementById('imageModel');
+            const models = discoveredModels.image.length > 0 ? discoveredModels.image :
+                Object.entries(IMAGE_MODELS).map(([id, m]) => ({ id, ...m, displayName: m.name }));
+            
+            const currentValue = select.value;
+            select.innerHTML = '';
+            
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.displayName || model.name || model.id;
+                option.title = model.description || '';
+                select.appendChild(option);
+            });
+
+            if (models.some(m => m.id === currentValue)) {
+                select.value = currentValue;
+            }
+            updateImageModelInfo();
+        }
+
+        function populateVideoModels() {
+            const select = document.getElementById('videoModel');
+            const models = discoveredModels.video.length > 0 ? discoveredModels.video :
+                Object.entries(VIDEO_MODELS).map(([id, m]) => ({ id, ...m, displayName: m.name }));
+            
+            const currentValue = select.value;
+            select.innerHTML = '';
+            
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.displayName || model.name || model.id;
+                option.title = model.description || '';
+                select.appendChild(option);
+            });
+
+            if (models.some(m => m.id === currentValue)) {
+                select.value = currentValue;
+            }
+            updateVideoModelInfo();
+        }
+
+        function updateModelRefreshStatus() {
+            const statusEl = document.getElementById('modelRefreshStatus');
+            if (!statusEl) return;
+            
+            if (discoveredModels.lastFetched) {
+                const time = discoveredModels.lastFetched.toLocaleTimeString();
+                const counts = `${discoveredModels.text.length}T/${discoveredModels.image.length}I/${discoveredModels.video.length}V`;
+                statusEl.textContent = `Models: ${counts} · Last: ${time}`;
+                statusEl.style.color = 'var(--success)';
+            } else {
+                statusEl.textContent = 'Using fallback models';
+                statusEl.style.color = 'var(--amber-dim)';
+            }
+        }
+
+        async function refreshModels() {
+            const btn = document.getElementById('refreshModelsBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span>';
+            }
+            
+            const success = await fetchAndCacheModels(true);
+            if (success) {
+                populateModelDropdowns();
+            }
+            
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '↻';
+            }
+        }
+
+        // ============================================
+        // GET MODEL INFO (Dynamic or Fallback)
+        // ============================================
+        function getTextModelInfo(modelId) {
+            // Check discovered models first
+            const discovered = discoveredModels.text.find(m => m.id === modelId);
+            if (discovered) return discovered;
+            
+            // Fallback to static
+            const fallback = TEXT_MODELS[modelId];
+            if (fallback) return { id: modelId, ...fallback };
+            
+            // Default unknown model
+            const preset = MODEL_PRESETS.text[modelId] || MODEL_PRESETS.text['_default'];
+            return { id: modelId, name: modelId, displayName: formatModelName(modelId), ...preset };
+        }
+
+        function getImageModelInfo(modelId) {
+            const discovered = discoveredModels.image.find(m => m.id === modelId);
+            if (discovered) return discovered;
+            
+            const fallback = IMAGE_MODELS[modelId];
+            if (fallback) return { id: modelId, ...fallback };
+            
+            const preset = MODEL_PRESETS.image[modelId] || MODEL_PRESETS.image['_default'];
+            return { id: modelId, name: modelId, displayName: formatModelName(modelId), ...preset };
+        }
+
+        function getVideoModelInfo(modelId) {
+            const discovered = discoveredModels.video.find(m => m.id === modelId);
+            if (discovered) return discovered;
+            
+            const fallback = VIDEO_MODELS[modelId];
+            if (fallback) return { id: modelId, ...fallback };
+            
+            const preset = MODEL_PRESETS.video[modelId] || MODEL_PRESETS.video['_default'];
+            return { id: modelId, name: modelId, displayName: formatModelName(modelId), ...preset };
+        }
 
         // ============================================
         // UTILITY FUNCTIONS
@@ -1515,15 +1833,20 @@ Time Period: 150 million years ago</textarea>
         }
 
         // ============================================
-        // MODEL INFO UPDATES
+        // MODEL INFO UPDATES (Refactored to use dynamic models)
         // ============================================
         function updateTextModelInfo() {
             const modelId = document.getElementById('textModel').value;
-            const model = TEXT_MODELS[modelId];
+            if (!modelId) return;
+            
+            const model = getTextModelInfo(modelId);
             
             document.getElementById('textModelBadge').textContent = modelId;
+            
+            const inputPrice = model.inputPrice || 0.50;
+            const outputPrice = model.outputPrice || 2.50;
             document.getElementById('textPricing').textContent = 
-                `$${model.inputPrice.toFixed(2)}/1M in · $${model.outputPrice.toFixed(2)}/1M out`;
+                `$${inputPrice.toFixed(2)}/1M in · $${outputPrice.toFixed(2)}/1M out`;
             
             // Show/hide thinking budget based on model support
             const thinkingRow = document.getElementById('textThinkingRow');
@@ -1536,15 +1859,20 @@ Time Period: 150 million years ago</textarea>
 
         function updateImageModelInfo() {
             const modelId = document.getElementById('imageModel').value;
-            const model = IMAGE_MODELS[modelId];
+            if (!modelId) return;
+            
+            const model = getImageModelInfo(modelId);
             
             document.getElementById('imageModelBadge').textContent = modelId;
-            document.getElementById('imagePricing').textContent = `$${model.pricePerImage.toFixed(3)}`;
+            const price = model.pricePerImage || 0.05;
+            document.getElementById('imagePricing').textContent = `$${price.toFixed(3)}`;
         }
 
         function updateVideoModelInfo() {
             const modelId = document.getElementById('videoModel').value;
-            const model = VIDEO_MODELS[modelId];
+            if (!modelId) return;
+            
+            const model = getVideoModelInfo(modelId);
             
             document.getElementById('videoModelBadge').textContent = modelId;
             updateVideoCost();
@@ -1552,9 +1880,12 @@ Time Period: 150 million years ago</textarea>
 
         function updateVideoCost() {
             const modelId = document.getElementById('videoModel').value;
-            const model = VIDEO_MODELS[modelId];
+            if (!modelId) return;
+            
+            const model = getVideoModelInfo(modelId);
             const duration = parseInt(document.getElementById('videoDuration').value);
-            const cost = (duration * model.pricePerSecond).toFixed(2);
+            const pricePerSecond = model.pricePerSecond || 0.20;
+            const cost = (duration * pricePerSecond).toFixed(2);
             
             document.getElementById('videoPricing').textContent = `$${cost}`;
         }
@@ -1601,15 +1932,65 @@ Time Period: 150 million years ago</textarea>
         }
 
         // Initialize on load
-        window.addEventListener('DOMContentLoaded', () => {
-            updateTextModelInfo();
-            updateImageModelInfo();
-            updateVideoModelInfo();
+        window.addEventListener('DOMContentLoaded', async () => {
             loadSavedApiKey();
             
             // Save API key when it changes
             document.getElementById('apiKey').addEventListener('input', saveApiKeyIfEnabled);
+            
+            // Try to load cached models or fetch new ones if we have an API key
+            const apiKey = getApiKey();
+            if (apiKey) {
+                await fetchAndCacheModels(false); // Use cache if available
+                populateModelDropdowns();
+            }
+            
+            // Update model info displays (uses fallback if no cached models)
+            updateTextModelInfo();
+            updateImageModelInfo();
+            updateVideoModelInfo();
         });
+        
+        // Refresh models from API (called by refresh button or diagnostics)
+        async function refreshModels() {
+            const apiKey = getApiKey();
+            const refreshBtn = document.getElementById('refreshModelsBtn');
+            
+            if (!apiKey) {
+                alert('Please enter your API key first');
+                return;
+            }
+            
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.innerHTML = '<span class="spinner"></span>';
+            }
+            
+            try {
+                await fetchAndCacheModels(true); // Force refresh
+                populateModelDropdowns();
+                updateTextModelInfo();
+                updateImageModelInfo();
+                updateVideoModelInfo();
+                
+                if (refreshBtn) {
+                    refreshBtn.innerHTML = '✓';
+                    setTimeout(() => {
+                        refreshBtn.innerHTML = '⟳';
+                        refreshBtn.disabled = false;
+                    }, 1500);
+                }
+            } catch (error) {
+                console.error('Failed to refresh models:', error);
+                if (refreshBtn) {
+                    refreshBtn.innerHTML = '✗';
+                    setTimeout(() => {
+                        refreshBtn.innerHTML = '⟳';
+                        refreshBtn.disabled = false;
+                    }, 1500);
+                }
+            }
+        }
 
         // ============================================
         // API KEY VALIDATION
@@ -1652,7 +2033,7 @@ Time Period: 150 million years ago</textarea>
             }
 
             const modelId = document.getElementById('imageModel').value;
-            const model = IMAGE_MODELS[modelId];
+            const model = getImageModelInfo(modelId);
             const prompt = document.getElementById('imagePrompt').value;
             const btn = document.getElementById('imageTestBtn');
 
@@ -1664,7 +2045,8 @@ Time Period: 150 million years ago</textarea>
 
             addLog('imageLogs', 'Initializing image generation...', 'info');
             addLog('imageLogs', `Model: ${modelId}`, 'info');
-            addLog('imageLogs', `Cost: $${model.pricePerImage.toFixed(3)} per image`, 'info');
+            const pricePerImage = model.pricePerImage || 0.05;
+            addLog('imageLogs', `Cost: $${pricePerImage.toFixed(3)} per image`, 'info');
 
             const requestBody = {
                 contents: [{
@@ -1764,14 +2146,15 @@ Time Period: 150 million years ago</textarea>
             }
 
             const modelId = document.getElementById('videoModel').value;
-            const model = VIDEO_MODELS[modelId];
+            const model = getVideoModelInfo(modelId);
             const prompt = document.getElementById('videoPrompt').value;
             const duration = parseInt(document.getElementById('videoDuration').value);
             const aspectRatio = document.getElementById('videoAspectRatio').value;
             const resolution = document.getElementById('videoResolution').value;
             const btn = document.getElementById('videoTestBtn');
 
-            const estimatedCost = (duration * model.pricePerSecond).toFixed(2);
+            const pricePerSecond = model.pricePerSecond || 0.20;
+            const estimatedCost = (duration * pricePerSecond).toFixed(2);
 
             clearLogs('videoLogs');
             btn.disabled = true;
@@ -1938,7 +2321,7 @@ Time Period: 150 million years ago</textarea>
             }
 
             const modelId = document.getElementById('textModel').value;
-            const model = TEXT_MODELS[modelId];
+            const model = getTextModelInfo(modelId);
             const systemPrompt = document.getElementById('textSystemPrompt').value;
             const userPrompt = document.getElementById('textPrompt').value;
             const temperature = parseFloat(document.getElementById('textTemperature').value);
@@ -1958,7 +2341,8 @@ Time Period: 150 million years ago</textarea>
             addLog('textLogs', `Config: temp=${temperature}, maxTokens=${maxTokens}`, 'info');
             
             // Validate thinking budget
-            if (model.supportsThinking && thinkingBudget > 0) {
+            const supportsThinking = model.supportsThinking || false;
+            if (supportsThinking && thinkingBudget > 0) {
                 addLog('textLogs', `Thinking budget: ${thinkingBudget} tokens`, 'info');
                 if (thinkingBudget >= maxTokens) {
                     addLog('textLogs', '⚠️ Warning: Thinking budget >= max tokens. May produce no text output.', 'warning');
@@ -1973,7 +2357,7 @@ Time Period: 150 million years ago</textarea>
             };
 
             // Add thinking budget if supported and enabled
-            if (model.supportsThinking && thinkingBudget > 0) {
+            if (supportsThinking && thinkingBudget > 0) {
                 generationConfig.thinkingConfig = {
                     thinkingBudget: thinkingBudget
                 };
@@ -2146,7 +2530,7 @@ Time Period: 150 million years ago</textarea>
         }
 
         // ============================================
-        // FETCH AVAILABLE MODELS
+        // FETCH AVAILABLE MODELS (Diagnostics view)
         // ============================================
         async function fetchAvailableModels() {
             const apiKey = getApiKey();
@@ -2169,46 +2553,62 @@ Time Period: 150 million years ago</textarea>
             };
 
             try {
-                addModelLog('Fetching models from API...', 'info');
+                addModelLog('Fetching and categorizing models from API...', 'info');
                 
-                const response = await fetch(`${GEMINI_API_BASE_URL}/models?key=${apiKey}`);
+                // Use the dynamic fetch and categorize
+                await fetchAndCacheModels(true);
+                populateModelDropdowns();
                 
-                if (!response.ok) {
-                    const error = await response.json();
-                    addModelLog(`Error: ${error.error?.message}`, 'error');
-                    return;
+                addModelLog('', 'info');
+                addModelLog(`=== TEXT MODELS (${discoveredModels.text.length}) ===`, 'success');
+                discoveredModels.text.forEach(m => {
+                    const preset = MODEL_PRESETS.text[m.id];
+                    const pricing = preset ? `$${preset.inputPrice}/$${preset.outputPrice} per 1M tokens` : 'Pricing unknown';
+                    addModelLog(`• ${m.displayName} (${m.id})`, 'success');
+                    addModelLog(`  ${pricing}`, 'info');
+                });
+                
+                addModelLog('', 'info');
+                addModelLog(`=== IMAGE MODELS (${discoveredModels.image.length}) ===`, 'success');
+                discoveredModels.image.forEach(m => {
+                    const preset = MODEL_PRESETS.image[m.id];
+                    const pricing = preset ? `$${preset.pricePerImage} per image` : 'Pricing unknown';
+                    addModelLog(`• ${m.displayName} (${m.id})`, 'success');
+                    addModelLog(`  ${pricing}`, 'info');
+                });
+                
+                addModelLog('', 'info');
+                addModelLog(`=== VIDEO MODELS (${discoveredModels.video.length}) ===`, 'success');
+                discoveredModels.video.forEach(m => {
+                    const preset = MODEL_PRESETS.video[m.id];
+                    const pricing = preset ? `$${preset.pricePerSecond}/sec` : 'Pricing unknown';
+                    addModelLog(`• ${m.displayName} (${m.id})`, 'success');
+                    addModelLog(`  ${pricing}`, 'info');
+                });
+                
+                addModelLog('', 'info');
+                addModelLog(`=== EMBEDDING MODELS (${discoveredModels.embedding.length}) ===`, 'info');
+                discoveredModels.embedding.forEach(m => {
+                    addModelLog(`• ${m.displayName} (${m.id})`, 'info');
+                });
+                
+                if (discoveredModels.other.length > 0) {
+                    addModelLog('', 'info');
+                    addModelLog(`=== OTHER MODELS (${discoveredModels.other.length}) ===`, 'info');
+                    discoveredModels.other.forEach(m => {
+                        addModelLog(`• ${m.displayName} (${m.id})`, 'info');
+                    });
                 }
-
-                const data = await response.json();
-                const models = data.models || [];
                 
-                addModelLog(`Found ${models.length} total models:`, 'success');
+                const total = discoveredModels.text.length + discoveredModels.image.length + 
+                              discoveredModels.video.length + discoveredModels.embedding.length + 
+                              discoveredModels.other.length;
                 addModelLog('', 'info');
-                
-                // Group by capability
-                const genModels = models.filter(m => m.supportedGenerationMethods?.includes('generateContent'));
-                const embedModels = models.filter(m => m.supportedGenerationMethods?.includes('embedContent'));
-                
-                addModelLog('=== GENERATION MODELS (generateContent) ===', 'info');
-                genModels.forEach(m => {
-                    const name = m.name.replace('models/', '');
-                    const desc = m.description?.substring(0, 60) || '';
-                    addModelLog(`• ${name}`, 'success');
-                    if (desc) addModelLog(`  ${desc}...`, 'info');
-                });
-                
-                addModelLog('', 'info');
-                addModelLog('=== EMBEDDING MODELS ===', 'info');
-                embedModels.forEach(m => {
-                    const name = m.name.replace('models/', '');
-                    addModelLog(`• ${name}`, 'info');
-                });
-                
-                addModelLog('', 'info');
-                addModelLog('Tip: Copy model names above to add to the dropdowns.', 'info');
+                addModelLog(`✓ Total: ${total} models discovered and categorized`, 'success');
+                addModelLog('Dropdowns have been updated with available models.', 'success');
                 
             } catch (e) {
-                addModelLog(`Network error: ${e.message}`, 'error');
+                addModelLog(`Error: ${e.message}`, 'error');
             }
         }
     </script>
