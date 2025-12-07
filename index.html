@@ -1929,6 +1929,7 @@ Time Period: 150 million years ago</textarea>
                     text: [],
                     image: [],
                     video: [],
+                    tts: [],
                     embedding: [],
                     other: [],
                     lastFetched: new Date(),
@@ -1947,7 +1948,7 @@ Time Period: 150 million years ago</textarea>
                 // Sort each category by name
                 Object.keys(discoveredModels).forEach(key => {
                     if (Array.isArray(discoveredModels[key])) {
-                        discoveredModels[key].sort((a, b) => a.id.localeCompare(b.id));
+                        discoveredModels[key].sort((a, b) => (a?.id || '').localeCompare(b?.id || ''));
                     }
                 });
 
@@ -2451,11 +2452,11 @@ Time Period: 150 million years ago</textarea>
                 
                 // Show summary
                 const summary = [];
-                if (discoveredModels.text.length) summary.push(`${discoveredModels.text.length} text`);
-                if (discoveredModels.image.length) summary.push(`${discoveredModels.image.length} image`);
-                if (discoveredModels.video.length) summary.push(`${discoveredModels.video.length} video`);
-                if (discoveredModels.tts.length) summary.push(`${discoveredModels.tts.length} TTS`);
-                if (discoveredModels.embedding.length) summary.push(`${discoveredModels.embedding.length} embedding`);
+                if (discoveredModels.text?.length) summary.push(`${discoveredModels.text.length} text`);
+                if (discoveredModels.image?.length) summary.push(`${discoveredModels.image.length} image`);
+                if (discoveredModels.video?.length) summary.push(`${discoveredModels.video.length} video`);
+                if (discoveredModels.tts?.length) summary.push(`${discoveredModels.tts.length} TTS`);
+                if (discoveredModels.embedding?.length) summary.push(`${discoveredModels.embedding.length} embedding`);
                 
                 resultEl.innerHTML = `<span style="color: var(--success);">✓ Ready — ${summary.join(', ')} models loaded</span>`;
                 
