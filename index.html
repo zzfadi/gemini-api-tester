@@ -890,8 +890,7 @@
                     <input type="password" id="apiKey" placeholder="Enter Gemini API Key (AIza...)" />
                     <button onclick="toggleApiKey()" class="toggle-visibility-btn" id="toggleKeyBtn" title="Show/Hide API Key">◐</button>
                 </div>
-                <button onclick="validateApiKey()" class="primary">Validate</button>
-                <button onclick="refreshModels()" class="primary" id="refreshModelsBtn" title="Refresh available models from API">Refresh</button>
+                <button onclick="connectAndLoadModels()" class="primary" id="connectBtn">▶ Connect</button>
             </div>
             <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
                 <input type="checkbox" id="rememberKey" style="flex: none; width: 16px; height: 16px; cursor: pointer;" onchange="toggleRememberKey()" />
@@ -1945,24 +1944,6 @@ Time Period: 150 million years ago</textarea>
             }
         }
 
-        async function refreshModels() {
-            const btn = document.getElementById('refreshModelsBtn');
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner"></span>';
-            }
-            
-            const success = await fetchAndCacheModels(true);
-            if (success) {
-                populateModelDropdowns();
-            }
-            
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '↻';
-            }
-        }
-
         // ============================================
         // GET MODEL INFO (Dynamic or Fallback)
         // ============================================
@@ -2277,76 +2258,80 @@ Time Period: 150 million years ago</textarea>
                 });
             }
         });
-        
-        // Refresh models from API (called by refresh button or diagnostics)
-        async function refreshModels() {
-            const apiKey = getApiKey();
-            const refreshBtn = document.getElementById('refreshModelsBtn');
-            
-            if (!apiKey) {
-                alert('Please enter your API key first');
-                return;
-            }
-            
-            if (refreshBtn) {
-                refreshBtn.disabled = true;
-                refreshBtn.innerHTML = '<span class="spinner"></span>';
-            }
-            
-            try {
-                await fetchAndCacheModels(true); // Force refresh
-                populateModelDropdowns();
-                updateTextModelInfo();
-                updateImageModelInfo();
-                updateVideoModelInfo();
-                
-                if (refreshBtn) {
-                    refreshBtn.innerHTML = '✓';
-                    setTimeout(() => {
-                        refreshBtn.innerHTML = '⟳';
-                        refreshBtn.disabled = false;
-                    }, 1500);
-                }
-            } catch (error) {
-                console.error('Failed to refresh models:', error);
-                if (refreshBtn) {
-                    refreshBtn.innerHTML = '✗';
-                    setTimeout(() => {
-                        refreshBtn.innerHTML = '⟳';
-                        refreshBtn.disabled = false;
-                    }, 1500);
-                }
-            }
-        }
 
         // ============================================
-        // API KEY VALIDATION
+        // CONNECT & LOAD MODELS (Combined validate + refresh)
         // ============================================
-        async function validateApiKey() {
+        async function connectAndLoadModels() {
             const apiKey = getApiKey();
             const resultEl = document.getElementById('keyValidationResult');
+            const btn = document.getElementById('connectBtn');
 
             if (!apiKey) {
                 resultEl.innerHTML = '<span style="color: var(--error);">✗ Please enter an API key</span>';
                 return;
             }
 
-            resultEl.innerHTML = '<span class="spinner"></span> Validating...';
+            // Update button state
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Connecting...';
+            resultEl.innerHTML = '<span class="spinner"></span> Validating API key...';
 
             try {
+                // Step 1: Validate the key by fetching models
                 const response = await fetch(`${GEMINI_API_BASE_URL}/models?key=${apiKey}`);
 
-                if (response.ok) {
-                    const data = await response.json();
-                    const modelCount = data.models?.length || 0;
-                    resultEl.innerHTML = `<span style="color: var(--success);">✓ Valid — ${modelCount} models available</span>`;
-                } else {
+                if (!response.ok) {
                     const error = await response.json();
-                    resultEl.innerHTML = `<span style="color: var(--error);">✗ ${error.error?.message || response.statusText}</span>`;
+                    throw new Error(error.error?.message || response.statusText);
                 }
+
+                const data = await response.json();
+                const modelCount = data.models?.length || 0;
+                
+                resultEl.innerHTML = `<span style="color: var(--success);">✓ Connected — Discovered ${modelCount} models</span>`;
+
+                // Step 2: Process and categorize models
+                resultEl.innerHTML += '<br><span class="spinner" style="margin-right: 0.5rem;"></span><span style="font-size: 0.75rem;">Loading model categories...</span>';
+                
+                await fetchAndCacheModels(true);
+                populateModelDropdowns();
+                updateTextModelInfo();
+                updateImageModelInfo();
+                updateVideoModelInfo();
+                updateTTSModelInfo();
+                
+                // Show summary
+                const summary = [];
+                if (discoveredModels.text.length) summary.push(`${discoveredModels.text.length} text`);
+                if (discoveredModels.image.length) summary.push(`${discoveredModels.image.length} image`);
+                if (discoveredModels.video.length) summary.push(`${discoveredModels.video.length} video`);
+                if (discoveredModels.tts.length) summary.push(`${discoveredModels.tts.length} TTS`);
+                if (discoveredModels.embedding.length) summary.push(`${discoveredModels.embedding.length} embedding`);
+                
+                resultEl.innerHTML = `<span style="color: var(--success);">✓ Ready — ${summary.join(', ')} models loaded</span>`;
+                
+                // Update button to show connected state
+                btn.innerHTML = '✓ Connected';
+                setTimeout(() => {
+                    btn.innerHTML = '↻ Reload';
+                    btn.disabled = false;
+                }, 2000);
+
             } catch (error) {
-                resultEl.innerHTML = `<span style="color: var(--error);">✗ Network error: ${error.message}</span>`;
+                resultEl.innerHTML = `<span style="color: var(--error);">✗ ${error.message}</span>`;
+                btn.innerHTML = '▶ Connect';
+                btn.disabled = false;
             }
+        }
+
+        // Legacy alias for compatibility
+        async function validateApiKey() {
+            return connectAndLoadModels();
+        }
+        
+        async function refreshModels() {
+            return connectAndLoadModels();
         }
 
         // ============================================
