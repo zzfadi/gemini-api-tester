@@ -977,6 +977,197 @@
         .token-usage .value {
             color: var(--amber-text);
         }
+
+        /* ===== ADVANCED OPTIONS ===== */
+        .advanced-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 0;
+            cursor: pointer;
+            color: var(--amber-dim);
+            font-size: 0.8rem;
+            transition: color 0.2s;
+            user-select: none;
+        }
+
+        .advanced-toggle:hover {
+            color: var(--amber-glow);
+        }
+
+        .advanced-toggle-icon {
+            transition: transform 0.2s;
+            font-size: 0.6rem;
+        }
+
+        .advanced-toggle.open .advanced-toggle-icon {
+            transform: rotate(90deg);
+        }
+
+        .advanced-options {
+            display: none;
+            background: var(--obsidian);
+            border: 1px solid var(--shale);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+
+        .advanced-options.open {
+            display: block;
+        }
+
+        .advanced-options .form-row {
+            margin-bottom: 0.75rem;
+        }
+
+        .advanced-options .form-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .advanced-options label {
+            font-size: 0.7rem;
+        }
+
+        .advanced-options input[type="text"],
+        .advanced-options input[type="number"] {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.6rem;
+        }
+
+        /* ===== EMBEDDING VECTOR DISPLAY ===== */
+        .vector-preview {
+            background: var(--obsidian);
+            border: 1px solid var(--shale);
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .vector-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .vector-preview-header h5 {
+            color: var(--amber-glow);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .vector-stats {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.8rem;
+        }
+
+        .vector-stats .stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .vector-stats .stat-label {
+            color: var(--amber-dim);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+        }
+
+        .vector-stats .stat-value {
+            color: var(--amber-text);
+            font-weight: 500;
+        }
+
+        .vector-values {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--amber-text);
+            background: var(--basalt);
+            padding: 0.75rem;
+            max-height: 150px;
+            overflow-y: auto;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+
+        /* ===== RESPONSE METADATA DISPLAY ===== */
+        .response-metadata {
+            background: var(--obsidian);
+            border: 1px solid var(--shale);
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+        }
+
+        .response-metadata-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .response-metadata-row:last-child {
+            border-bottom: none;
+        }
+
+        .response-metadata-label {
+            color: var(--amber-dim);
+        }
+
+        .response-metadata-value {
+            color: var(--amber-text);
+        }
+
+        .response-metadata-value.success {
+            color: var(--success);
+        }
+
+        .response-metadata-value.warning {
+            color: var(--warning);
+        }
+
+        .response-metadata-value.error {
+            color: var(--error);
+        }
+
+        .safety-ratings {
+            margin-top: 0.5rem;
+        }
+
+        .safety-rating {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.15rem 0.4rem;
+            background: var(--basalt);
+            border-radius: 3px;
+            font-size: 0.65rem;
+            margin-right: 0.3rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .safety-rating.safe {
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .safety-rating.low {
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .safety-rating.medium {
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .safety-rating.high {
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
     </style>
 </head>
 <body>
@@ -1028,6 +1219,9 @@
             <button class="tab" onclick="showTab('audio', this)" aria-label="Audio">
                 <span class="tab-icon">♪</span>Audio
             </button>
+            <button class="tab" onclick="showTab('embedding', this)" aria-label="Embeddings">
+                <span class="tab-icon">◇</span>Embed
+            </button>
             <button class="tab" onclick="showTab('troubleshoot', this)" aria-label="Diagnostics">
                 <span class="tab-icon">⚙</span>Diagnostics
             </button>
@@ -1070,6 +1264,50 @@
 Style: Photorealistic nature photography, cinematic lighting, high detail.
 Aspect ratio: 16:9 (landscape orientation).
 Do not include any text, labels, or watermarks in the image.</textarea>
+            </div>
+
+            <!-- Advanced Options Toggle -->
+            <div class="advanced-toggle" onclick="toggleAdvancedOptions('image')">
+                <span class="advanced-toggle-icon" id="imageAdvancedIcon">▶</span>
+                <span>Advanced Options</span>
+            </div>
+            <div class="advanced-options" id="imageAdvancedOptions">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Number of Images</label>
+                        <select id="imageNumberOfImages">
+                            <option value="1" selected>1 image</option>
+                            <option value="2">2 images</option>
+                            <option value="3">3 images</option>
+                            <option value="4">4 images</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Person Generation</label>
+                        <select id="imagePersonGeneration">
+                            <option value="">Default</option>
+                            <option value="DONT_ALLOW">Don't Allow</option>
+                            <option value="ALLOW_ADULT">Allow Adult</option>
+                            <option value="ALLOW_ALL">Allow All</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Safety Filter Level</label>
+                        <select id="imageSafetyFilterLevel">
+                            <option value="">Default</option>
+                            <option value="BLOCK_LOW_AND_ABOVE">Block Low & Above</option>
+                            <option value="BLOCK_MEDIUM_AND_ABOVE">Block Medium & Above</option>
+                            <option value="BLOCK_ONLY_HIGH">Block Only High</option>
+                            <option value="BLOCK_NONE">Block None (requires billing)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Negative Prompt</label>
+                        <input type="text" id="imageNegativePrompt" placeholder="e.g., blurry, low quality, text, watermark" />
+                    </div>
+                </div>
             </div>
 
             <div class="cost-display" id="imageCostDisplay">
@@ -1165,6 +1403,47 @@ Natural movement, documentary style cinematography, golden hour lighting, slight
 
 Location: California, USA
 Time Period: 150 million years ago</textarea>
+            </div>
+
+            <!-- Advanced Options Toggle -->
+            <div class="advanced-toggle" onclick="toggleAdvancedOptions('video')">
+                <span class="advanced-toggle-icon" id="videoAdvancedIcon">▶</span>
+                <span>Advanced Options</span>
+            </div>
+            <div class="advanced-options" id="videoAdvancedOptions">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Negative Prompt</label>
+                        <input type="text" id="videoNegativePrompt" placeholder="e.g., blurry, low quality, shaky camera, distorted" />
+                    </div>
+                    <div class="form-group">
+                        <label>Person Generation</label>
+                        <select id="videoPersonGeneration">
+                            <option value="">Default</option>
+                            <option value="dont_allow">Don't Allow</option>
+                            <option value="allow_adult">Allow Adult</option>
+                            <option value="allow_all">Allow All</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Safety Filter Level</label>
+                        <select id="videoSafetyFilterLevel">
+                            <option value="">Default</option>
+                            <option value="block_low_and_above">Block Low & Above</option>
+                            <option value="block_medium_and_above">Block Medium & Above</option>
+                            <option value="block_only_high">Block Only High</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Include Audio</label>
+                        <select id="videoIncludeAudio">
+                            <option value="true" selected>Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <div class="cost-display" id="videoCostEstimate">
@@ -1288,6 +1567,42 @@ Time Period: 150 million years ago</textarea>
                 <textarea id="textPrompt">Explain how large language models work in simple terms.</textarea>
             </div>
 
+            <!-- Advanced Options Toggle -->
+            <div class="advanced-toggle" onclick="toggleAdvancedOptions('text')">
+                <span class="advanced-toggle-icon" id="textAdvancedIcon">▶</span>
+                <span>Advanced Options</span>
+            </div>
+            <div class="advanced-options" id="textAdvancedOptions">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Top K</label>
+                        <input type="number" id="textTopK" placeholder="40" min="1" max="100" />
+                    </div>
+                    <div class="form-group">
+                        <label>Top P</label>
+                        <input type="number" id="textTopP" placeholder="0.95" min="0" max="1" step="0.05" />
+                    </div>
+                    <div class="form-group">
+                        <label>Response Format</label>
+                        <select id="textResponseMimeType">
+                            <option value="">Default (text/plain)</option>
+                            <option value="text/plain">Text Plain</option>
+                            <option value="application/json">JSON</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Stop Sequences (comma-separated)</label>
+                        <input type="text" id="textStopSequences" placeholder="e.g., END, STOP, ###" />
+                    </div>
+                    <div class="form-group">
+                        <label>Presence Penalty</label>
+                        <input type="number" id="textPresencePenalty" placeholder="0" min="-2" max="2" step="0.1" />
+                    </div>
+                </div>
+            </div>
+
             <div class="cost-display" id="textCostDisplay">
                 <span class="label">Pricing</span>
                 <span class="value" id="textPricing">$0.30/1M in · $2.50/1M out</span>
@@ -1343,8 +1658,20 @@ Time Period: 150 million years ago</textarea>
                         <span class="value" id="cachedTokens">—</span>
                     </div>
                     <div class="row">
+                        <span class="label">Finish Reason</span>
+                        <span class="value" id="textFinishReason">—</span>
+                    </div>
+                    <div class="row">
                         <span class="label">Total Cost</span>
                         <span class="value" id="totalCost">—</span>
+                    </div>
+                </div>
+
+                <!-- Response Metadata -->
+                <div class="response-metadata hidden" id="textResponseMetadata">
+                    <div class="response-metadata-row">
+                        <span class="response-metadata-label">Safety Ratings</span>
+                        <span class="response-metadata-value" id="textSafetyRatings">—</span>
                     </div>
                 </div>
 
@@ -1576,6 +1903,125 @@ Time Period: 150 million years ago</textarea>
                     <h4>Execution Log</h4>
                 </div>
                 <div class="logs" id="audioLogs"></div>
+            </div>
+        </div>
+
+        <!-- Embedding Panel -->
+        <div id="embedding-panel" class="test-panel">
+            <div class="panel-header">
+                <div>
+                    <h3>Text Embeddings</h3>
+                    <p>Generate vector representations for semantic search & similarity</p>
+                </div>
+                <div class="model-badge" id="embeddingModelBadge">text-embedding-004</div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Model</label>
+                    <select id="embeddingModel" onchange="updateEmbeddingModelInfo()">
+                        <option value="text-embedding-004">Text Embedding 004</option>
+                        <option value="text-embedding-005">Text Embedding 005</option>
+                    </select>
+                    <div class="model-id-ref" id="embeddingModelIdRef">text-embedding-004</div>
+                </div>
+                <div class="form-group">
+                    <label>Task Type</label>
+                    <select id="embeddingTaskType">
+                        <option value="RETRIEVAL_DOCUMENT">Retrieval: Document</option>
+                        <option value="RETRIEVAL_QUERY">Retrieval: Query</option>
+                        <option value="SEMANTIC_SIMILARITY">Semantic Similarity</option>
+                        <option value="CLASSIFICATION">Classification</option>
+                        <option value="CLUSTERING">Clustering</option>
+                        <option value="QUESTION_ANSWERING">Question Answering</option>
+                        <option value="FACT_VERIFICATION">Fact Verification</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Output Dimensions</label>
+                    <select id="embeddingDimensions">
+                        <option value="">Default (768)</option>
+                        <option value="256">256</option>
+                        <option value="512">512</option>
+                        <option value="768">768</option>
+                        <option value="1024">1024</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Title (optional, for documents)</label>
+                    <input type="text" id="embeddingTitle" placeholder="e.g., Article about machine learning" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Text to Embed</label>
+                <textarea id="embeddingText" placeholder="Enter text to generate embeddings for...">What is machine learning and how does it work?</textarea>
+            </div>
+
+            <div class="cost-display" id="embeddingCostDisplay">
+                <span class="label">Pricing</span>
+                <span class="value" id="embeddingPricing">Free (no charge for embeddings)</span>
+                <a href="https://ai.google.dev/pricing" target="_blank" style="font-size: 0.6rem; color: var(--azurite); margin-left: 0.5rem;">Verify pricing ↗</a>
+            </div>
+
+            <button onclick="testEmbedding()" id="embeddingTestBtn" class="primary">
+                Generate Embedding
+            </button>
+
+            <div class="results-section" id="embeddingResults">
+                <div class="result-header">
+                    <h4>Request Payload</h4>
+                </div>
+                <div class="code-block" id="embeddingRequest">
+                    <pre>// Awaiting execution...</pre>
+                </div>
+
+                <div class="result-header">
+                    <h4>Response</h4>
+                    <span class="status-badge hidden" id="embeddingStatus"></span>
+                </div>
+                <div class="code-block" id="embeddingResponse">
+                    <pre>// Awaiting response...</pre>
+                </div>
+
+                <!-- Vector Preview -->
+                <div id="vectorPreview" class="hidden">
+                    <div class="vector-preview">
+                        <div class="vector-preview-header">
+                            <h5>Vector Output</h5>
+                            <button onclick="copyVector()" class="small">Copy Full Vector</button>
+                        </div>
+                        <div class="vector-stats">
+                            <div class="stat">
+                                <span class="stat-label">Dimensions</span>
+                                <span class="stat-value" id="vectorDimensions">—</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">Min Value</span>
+                                <span class="stat-value" id="vectorMin">—</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">Max Value</span>
+                                <span class="stat-value" id="vectorMax">—</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">Magnitude</span>
+                                <span class="stat-value" id="vectorMagnitude">—</span>
+                            </div>
+                        </div>
+                        <div class="vector-values" id="vectorValuesPreview">
+                            <!-- First 20 values will be shown here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-header" style="margin-top: 1.5rem;">
+                    <h4>Execution Log</h4>
+                </div>
+                <div class="logs" id="embeddingLogs"></div>
             </div>
         </div>
 
@@ -1974,6 +2420,7 @@ Time Period: 150 million years ago</textarea>
             populateTextModels();
             populateImageModels();
             populateVideoModels();
+            populateEmbeddingModels();
             updateModelRefreshStatus();
         }
 
@@ -2044,6 +2491,31 @@ Time Period: 150 million years ago</textarea>
             updateVideoModelInfo();
         }
 
+        function populateEmbeddingModels() {
+            const select = document.getElementById('embeddingModel');
+            const models = discoveredModels.embedding.length > 0 ? discoveredModels.embedding :
+                [
+                    { id: 'text-embedding-004', displayName: 'Text Embedding 004' },
+                    { id: 'text-embedding-005', displayName: 'Text Embedding 005' }
+                ];
+            
+            const currentValue = select.value;
+            select.innerHTML = '';
+            
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.displayName || model.name || model.id;
+                option.title = model.description || '';
+                select.appendChild(option);
+            });
+
+            if (models.some(m => m.id === currentValue)) {
+                select.value = currentValue;
+            }
+            updateEmbeddingModelInfo();
+        }
+
         function updateModelRefreshStatus() {
             const statusEl = document.getElementById('modelRefreshStatus');
             if (!statusEl) return;
@@ -2096,6 +2568,18 @@ Time Period: 150 million years ago</textarea>
             
             const preset = MODEL_PRESETS.video[modelId] || MODEL_PRESETS.video['_default'];
             return { id: modelId, name: modelId, displayName: formatModelName(modelId), ...preset };
+        }
+
+        function getEmbeddingModelInfo(modelId) {
+            const discovered = discoveredModels.embedding.find(m => m.id === modelId);
+            if (discovered) return discovered;
+            
+            // Default embedding models
+            const defaults = {
+                'text-embedding-004': { id: 'text-embedding-004', displayName: 'Text Embedding 004', dimensions: 768 },
+                'text-embedding-005': { id: 'text-embedding-005', displayName: 'Text Embedding 005', dimensions: 768 }
+            };
+            return defaults[modelId] || { id: modelId, displayName: formatModelName(modelId), dimensions: 768 };
         }
 
         // ============================================
@@ -2248,6 +2732,23 @@ Time Period: 150 million years ago</textarea>
             tabElement.classList.add('active');
         }
 
+        // ============================================
+        // ADVANCED OPTIONS TOGGLE
+        // ============================================
+        function toggleAdvancedOptions(section) {
+            const options = document.getElementById(`${section}AdvancedOptions`);
+            const icon = document.getElementById(`${section}AdvancedIcon`);
+            const toggle = icon.parentElement;
+            
+            if (options.classList.contains('open')) {
+                options.classList.remove('open');
+                toggle.classList.remove('open');
+            } else {
+                options.classList.add('open');
+                toggle.classList.add('open');
+            }
+        }
+
         function setStatus(elementId, status, text) {
             const el = document.getElementById(elementId);
             el.className = `status-badge ${status}`;
@@ -2381,6 +2882,7 @@ Time Period: 150 million years ago</textarea>
             updateImageModelInfo();
             updateVideoModelInfo();
             updateTTSModelInfo();
+            updateEmbeddingModelInfo();
             
             // Setup audio file drag-and-drop
             const dropZone = document.getElementById('audioDropZone');
@@ -2449,6 +2951,7 @@ Time Period: 150 million years ago</textarea>
                 updateImageModelInfo();
                 updateVideoModelInfo();
                 updateTTSModelInfo();
+                updateEmbeddingModelInfo();
                 
                 // Show summary
                 const summary = [];
@@ -2509,13 +3012,45 @@ Time Period: 150 million years ago</textarea>
             const pricePerImage = model.pricePerImage || 0.05;
             addLog('imageLogs', `Cost: $${pricePerImage.toFixed(3)} per image`, 'info');
 
+            // Build generation config
+            const generationConfig = {
+                responseModalities: ['IMAGE', 'TEXT']
+            };
+
+            // Add advanced options for Imagen models
+            const numberOfImages = document.getElementById('imageNumberOfImages').value;
+            const personGeneration = document.getElementById('imagePersonGeneration').value;
+            const safetyFilterLevel = document.getElementById('imageSafetyFilterLevel').value;
+            const negativePrompt = document.getElementById('imageNegativePrompt').value.trim();
+
+            // For Imagen models, use imagenConfig
+            if (modelId.includes('imagen')) {
+                generationConfig.imagenConfig = {};
+                if (numberOfImages && numberOfImages !== '1') {
+                    generationConfig.imagenConfig.numberOfImages = parseInt(numberOfImages);
+                }
+                if (personGeneration) {
+                    generationConfig.imagenConfig.personGeneration = personGeneration;
+                }
+                if (safetyFilterLevel) {
+                    generationConfig.imagenConfig.safetyFilterLevel = safetyFilterLevel;
+                }
+                if (negativePrompt) {
+                    generationConfig.imagenConfig.negativePrompt = negativePrompt;
+                }
+            }
+
+            // Build prompt with negative prompt for non-Imagen models
+            let finalPrompt = prompt;
+            if (!modelId.includes('imagen') && negativePrompt) {
+                finalPrompt = `${prompt}\n\nAvoid: ${negativePrompt}`;
+            }
+
             const requestBody = {
                 contents: [{
-                    parts: [{ text: prompt }]
+                    parts: [{ text: finalPrompt }]
                 }],
-                generationConfig: {
-                    responseModalities: ['IMAGE', 'TEXT']
-                }
+                generationConfig: generationConfig
             };
 
             document.getElementById('imageRequest').innerHTML = createCodeBlock('imageReq', 'Request JSON', requestBody, false);
@@ -2629,16 +3164,35 @@ Time Period: 150 million years ago</textarea>
             addLog('videoLogs', `Config: ${duration}s, ${aspectRatio}, ${resolution}`, 'info');
             addLog('videoLogs', `Est. cost: $${estimatedCost}`, 'info');
 
+            // Get advanced options
+            const negativePrompt = document.getElementById('videoNegativePrompt').value.trim() || 
+                'cartoon, drawing, low quality, blur, text overlay, watermark, amateur';
+            const personGeneration = document.getElementById('videoPersonGeneration').value;
+            const safetyFilterLevel = document.getElementById('videoSafetyFilterLevel').value;
+            const includeAudio = document.getElementById('videoIncludeAudio').value === 'true';
+
+            const parameters = {
+                aspectRatio: aspectRatio,
+                durationSeconds: duration,
+                resolution: resolution,
+                negativePrompt: negativePrompt,
+            };
+
+            if (personGeneration) {
+                parameters.personGeneration = personGeneration;
+            }
+            if (safetyFilterLevel) {
+                parameters.safetyFilterLevel = safetyFilterLevel;
+            }
+            if (!includeAudio) {
+                parameters.includeAudio = false;
+            }
+
             const requestBody = {
                 instances: [{
                     prompt: prompt,
                 }],
-                parameters: {
-                    aspectRatio: aspectRatio,
-                    durationSeconds: duration,
-                    resolution: resolution,
-                    negativePrompt: 'cartoon, drawing, low quality, blur, text overlay, watermark, amateur',
-                },
+                parameters: parameters,
             };
 
             document.getElementById('videoRequest').innerHTML = createCodeBlock('videoReq', 'Request JSON', requestBody, false);
@@ -2796,6 +3350,7 @@ Time Period: 150 million years ago</textarea>
             setStatus('textStatus', 'pending', 'PROCESSING');
             document.getElementById('tokenUsage').classList.add('hidden');
             document.getElementById('textPreview').classList.add('hidden');
+            document.getElementById('textResponseMetadata').classList.add('hidden');
 
             addLog('textLogs', 'Initializing text generation...', 'info');
             addLog('textLogs', `Model: ${modelId}`, 'info');
@@ -2823,6 +3378,21 @@ Time Period: 150 million years ago</textarea>
                     thinkingBudget: thinkingBudget
                 };
             }
+
+            // Add advanced options if set
+            const topK = document.getElementById('textTopK').value;
+            const topP = document.getElementById('textTopP').value;
+            const responseMimeType = document.getElementById('textResponseMimeType').value;
+            const stopSequences = document.getElementById('textStopSequences').value;
+            const presencePenalty = document.getElementById('textPresencePenalty').value;
+
+            if (topK) generationConfig.topK = parseInt(topK);
+            if (topP) generationConfig.topP = parseFloat(topP);
+            if (responseMimeType) generationConfig.responseMimeType = responseMimeType;
+            if (stopSequences) {
+                generationConfig.stopSequences = stopSequences.split(',').map(s => s.trim()).filter(s => s);
+            }
+            if (presencePenalty) generationConfig.presencePenalty = parseFloat(presencePenalty);
 
             const requestBody = {
                 system_instruction: {
@@ -2859,8 +3429,31 @@ Time Period: 150 million years ago</textarea>
                 addLog('textLogs', `Response: ${response.status} OK`, 'success');
                 setStatus('textStatus', 'success', 'COMPLETE');
 
-                const text = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
-                const finishReason = responseData.candidates?.[0]?.finishReason;
+                const candidate = responseData.candidates?.[0];
+                const text = candidate?.content?.parts?.[0]?.text;
+                const finishReason = candidate?.finishReason;
+                const safetyRatings = candidate?.safetyRatings;
+                
+                // Display finish reason
+                const finishReasonEl = document.getElementById('textFinishReason');
+                if (finishReason) {
+                    finishReasonEl.textContent = finishReason;
+                    finishReasonEl.className = 'value ' + (finishReason === 'STOP' ? 'success' : 
+                        finishReason === 'MAX_TOKENS' ? 'warning' : 'error');
+                }
+                
+                // Display safety ratings
+                if (safetyRatings && safetyRatings.length > 0) {
+                    const ratingsHtml = safetyRatings.map(r => {
+                        const prob = r.probability || 'NEGLIGIBLE';
+                        const category = (r.category || '').replace('HARM_CATEGORY_', '').toLowerCase();
+                        const level = prob === 'NEGLIGIBLE' ? 'safe' : prob === 'LOW' ? 'low' : 
+                            prob === 'MEDIUM' ? 'medium' : 'high';
+                        return `<span class="safety-rating ${level}">${category}: ${prob}</span>`;
+                    }).join('');
+                    document.getElementById('textSafetyRatings').innerHTML = ratingsHtml;
+                    document.getElementById('textResponseMetadata').classList.remove('hidden');
+                }
                 
                 if (text) {
                     addLog('textLogs', `Generated ${text.length} characters`, 'success');
@@ -2980,6 +3573,16 @@ Time Period: 150 million years ago</textarea>
             
             const preset = MODEL_PRESETS.audioInput[modelId] || MODEL_PRESETS.audioInput['_default'];
             document.getElementById('audioUnderstandPricing').textContent = `$${preset.audioInputPrice.toFixed(2)}/1M tokens`;
+        }
+
+        function updateEmbeddingModelInfo() {
+            const modelId = document.getElementById('embeddingModel').value;
+            if (!modelId) return;
+            
+            const model = getEmbeddingModelInfo(modelId);
+            
+            document.getElementById('embeddingModelBadge').textContent = modelId;
+            document.getElementById('embeddingModelIdRef').textContent = modelId;
         }
         
         function handleAudioFile(input) {
@@ -3335,6 +3938,154 @@ Time Period: 150 million years ago</textarea>
                 btn.disabled = false;
                 btn.innerHTML = 'Analyze Audio';
             }
+        }
+
+        // ============================================
+        // EMBEDDINGS
+        // ============================================
+        let lastEmbeddingVector = null;
+
+        async function testEmbedding() {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                alert('Please enter your API key first');
+                return;
+            }
+
+            const modelId = document.getElementById('embeddingModel').value;
+            const text = document.getElementById('embeddingText').value.trim();
+            const taskType = document.getElementById('embeddingTaskType').value;
+            const dimensions = document.getElementById('embeddingDimensions').value;
+            const title = document.getElementById('embeddingTitle').value.trim();
+            const btn = document.getElementById('embeddingTestBtn');
+
+            if (!text) {
+                alert('Please enter text to embed');
+                return;
+            }
+
+            clearLogs('embeddingLogs');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Generating...';
+            setStatus('embeddingStatus', 'pending', 'PROCESSING');
+            document.getElementById('vectorPreview').classList.add('hidden');
+
+            addLog('embeddingLogs', 'Initializing embedding generation...', 'info');
+            addLog('embeddingLogs', `Model: ${modelId}`, 'info');
+            addLog('embeddingLogs', `Task type: ${taskType}`, 'info');
+            if (dimensions) addLog('embeddingLogs', `Output dimensions: ${dimensions}`, 'info');
+
+            const requestBody = {
+                model: `models/${modelId}`,
+                content: {
+                    parts: [{ text: text }]
+                },
+                taskType: taskType
+            };
+
+            if (dimensions) {
+                requestBody.outputDimensionality = parseInt(dimensions);
+            }
+
+            if (title && taskType.startsWith('RETRIEVAL')) {
+                requestBody.title = title;
+            }
+
+            document.getElementById('embeddingRequest').innerHTML = createCodeBlock('embeddingReq', 'Request JSON', requestBody, false);
+
+            try {
+                addLog('embeddingLogs', `POST ${modelId}:embedContent`, 'info');
+
+                const response = await fetch(
+                    `${GEMINI_API_BASE_URL}/models/${modelId}:embedContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody),
+                    }
+                );
+
+                const responseData = await response.json();
+                
+                // Truncate vector for display
+                const displayData = JSON.parse(JSON.stringify(responseData));
+                if (displayData.embedding?.values) {
+                    const vals = displayData.embedding.values;
+                    const preview = vals.slice(0, 10).map(v => v.toFixed(6)).join(', ');
+                    displayData.embedding.values = `[${preview}, ... ${vals.length - 10} more values]`;
+                }
+                document.getElementById('embeddingResponse').innerHTML = createCodeBlock('embeddingRes', 'Response JSON', displayData, true);
+
+                if (!response.ok) {
+                    throw new Error(`API Error ${response.status}: ${responseData.error?.message || 'Unknown error'}`);
+                }
+
+                addLog('embeddingLogs', `Response: ${response.status} OK`, 'success');
+
+                // Extract embedding
+                if (responseData.embedding?.values) {
+                    const vector = responseData.embedding.values;
+                    lastEmbeddingVector = vector;
+                    
+                    setStatus('embeddingStatus', 'success', 'COMPLETE');
+                    addLog('embeddingLogs', `Vector dimensions: ${vector.length}`, 'success');
+
+                    // Calculate stats
+                    const min = Math.min(...vector);
+                    const max = Math.max(...vector);
+                    const magnitude = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));
+
+                    // Update UI
+                    document.getElementById('vectorDimensions').textContent = vector.length;
+                    document.getElementById('vectorMin').textContent = min.toFixed(6);
+                    document.getElementById('vectorMax').textContent = max.toFixed(6);
+                    document.getElementById('vectorMagnitude').textContent = magnitude.toFixed(4);
+
+                    // Show first 20 values
+                    const previewValues = vector.slice(0, 20).map((v, i) => 
+                        `<span style="color: var(--amber-dim);">[${i}]</span> ${v.toFixed(8)}`
+                    ).join('\n');
+                    document.getElementById('vectorValuesPreview').innerHTML = 
+                        previewValues + `\n<span style="color: var(--amber-dim);">... and ${vector.length - 20} more values</span>`;
+
+                    document.getElementById('vectorPreview').classList.remove('hidden');
+
+                    // Show usage
+                    if (responseData.usageMetadata) {
+                        addLog('embeddingLogs', `Input tokens: ${responseData.usageMetadata.promptTokenCount}`, 'info');
+                    }
+                } else {
+                    setStatus('embeddingStatus', 'warning', 'NO VECTOR');
+                    addLog('embeddingLogs', 'No embedding in response', 'warning');
+                }
+
+            } catch (error) {
+                setStatus('embeddingStatus', 'error', 'FAILED');
+                addLog('embeddingLogs', `Error: ${error.message}`, 'error');
+                document.getElementById('embeddingResponse').innerHTML = `<pre style="color: var(--error);">${error.message}</pre>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Generate Embedding';
+            }
+        }
+
+        function copyVector() {
+            if (!lastEmbeddingVector) {
+                alert('No vector to copy');
+                return;
+            }
+            
+            const jsonStr = JSON.stringify(lastEmbeddingVector);
+            navigator.clipboard.writeText(jsonStr).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.color = 'var(--success)';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.color = '';
+                }, 2000);
+            });
         }
 
         // ============================================
