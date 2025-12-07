@@ -1429,8 +1429,8 @@ Time Period: 150 million years ago</textarea>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Safety Filter Level</label>
-                        <select id="videoSafetyFilterLevel">
-                            <option value="">Default</option>
+                        <select id="videoSafetyFilterLevel" disabled>
+                            <option value="">Not supported yet</option>
                             <option value="block_low_and_above">Block Low & Above</option>
                             <option value="block_medium_and_above">Block Medium & Above</option>
                             <option value="block_only_high">Block Only High</option>
@@ -1444,6 +1444,9 @@ Time Period: 150 million years ago</textarea>
                         </select>
                     </div>
                 </div>
+                <p style="font-size: 0.7rem; color: var(--amber-dim); margin-top: 0.5rem;">
+                    Note: Resolution only works with Veo 3.x models. Safety filter not yet supported.
+                </p>
             </div>
 
             <div class="cost-display" id="videoCostEstimate">
@@ -1815,10 +1818,13 @@ Time Period: 150 million years ago</textarea>
                     <span>Advanced Options</span>
                 </div>
                 <div class="advanced-options" id="ttsAdvancedOptions">
+                    <p style="font-size: 0.7rem; color: var(--amber-dim); margin-bottom: 0.75rem; padding: 0.5rem; background: rgba(255,176,0,0.1); border-left: 2px solid var(--amber-dim);">
+                        ⚠️ These options are not yet supported by the Gemini TTS API. UI ready for future support.
+                    </p>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Speaking Rate</label>
-                            <select id="ttsSpeakingRate">
+                            <select id="ttsSpeakingRate" disabled>
                                 <option value="">Default (1.0)</option>
                                 <option value="0.5">0.5x (Slow)</option>
                                 <option value="0.75">0.75x</option>
@@ -1830,11 +1836,11 @@ Time Period: 150 million years ago</textarea>
                         </div>
                         <div class="form-group">
                             <label>Pitch (semitones)</label>
-                            <input type="number" id="ttsPitch" placeholder="0" min="-20" max="20" step="1" />
+                            <input type="number" id="ttsPitch" placeholder="0" min="-20" max="20" step="1" disabled />
                         </div>
                         <div class="form-group">
                             <label>Volume Gain (dB)</label>
-                            <input type="number" id="ttsVolumeGain" placeholder="0" min="-10" max="10" step="0.5" />
+                            <input type="number" id="ttsVolumeGain" placeholder="0" min="-10" max="10" step="0.5" disabled />
                         </div>
                     </div>
                 </div>
@@ -3256,16 +3262,23 @@ Time Period: 150 million years ago</textarea>
             const parameters = {
                 aspectRatio: aspectRatio,
                 durationSeconds: duration,
-                resolution: resolution,
                 negativePrompt: negativePrompt,
             };
+
+            // Resolution only supported by veo-3.1 models
+            if (resolution && modelId.includes('veo-3')) {
+                parameters.resolution = resolution;
+            } else if (resolution && !modelId.includes('veo-3')) {
+                addLog('videoLogs', 'Note: Resolution not supported by this model, using default', 'warning');
+            }
 
             if (personGeneration) {
                 parameters.personGeneration = personGeneration;
             }
-            if (safetyFilterLevel) {
-                parameters.safetyFilterLevel = safetyFilterLevel;
-            }
+            // safetyFilterLevel may not be supported by all models - skip to avoid errors
+            // if (safetyFilterLevel) {
+            //     parameters.safetyFilterLevel = safetyFilterLevel;
+            // }
             if (!includeAudio) {
                 parameters.includeAudio = false;
             }
@@ -3777,20 +3790,17 @@ Time Period: 150 million years ago</textarea>
             // Build request body
             let requestBody;
             
-            // Build voice config with optional audio modifiers
+            // Build voice config
+            // Note: audioModifier (speakingRate, pitch, volumeGainDb) is not yet supported by the API
+            // Keeping the UI for future compatibility when Google enables these features
             const buildVoiceConfig = (voiceName) => {
-                const config = { prebuiltVoiceConfig: { voiceName } };
-                
-                // Add audio modifier if any advanced options are set
-                if (speakingRate || pitch || volumeGain) {
-                    config.audioModifier = {};
-                    if (speakingRate) config.audioModifier.speakingRate = parseFloat(speakingRate);
-                    if (pitch) config.audioModifier.pitch = parseFloat(pitch);
-                    if (volumeGain) config.audioModifier.volumeGainDb = parseFloat(volumeGain);
-                }
-                
-                return config;
+                return { prebuiltVoiceConfig: { voiceName } };
             };
+            
+            // Log if user set advanced options (they won't be applied yet)
+            if (speakingRate || pitch || volumeGain) {
+                addLog('audioLogs', 'Note: Speaking rate/pitch/volume options not yet supported by API', 'warning');
+            }
             
             if (speakerMode === 'multi') {
                 const speaker1Name = document.getElementById('speaker1Name').value || 'Speaker1';
