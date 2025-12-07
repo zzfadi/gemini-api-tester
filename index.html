@@ -914,6 +914,9 @@
             <button class="tab" onclick="showTab('text', this)" aria-label="Text Generation">
                 <span class="tab-icon">¶</span>Text
             </button>
+            <button class="tab" onclick="showTab('audio', this)" aria-label="Audio">
+                <span class="tab-icon">♪</span>Audio
+            </button>
             <button class="tab" onclick="showTab('troubleshoot', this)" aria-label="Diagnostics">
                 <span class="tab-icon">⚙</span>Diagnostics
             </button>
@@ -1241,6 +1244,230 @@ Time Period: 150 million years ago</textarea>
             </div>
         </div>
 
+        <!-- Audio Panel -->
+        <div id="audio-panel" class="test-panel">
+            <div class="panel-header">
+                <div>
+                    <h3>Audio Generation & Understanding</h3>
+                    <p>Text-to-Speech synthesis and audio analysis</p>
+                </div>
+                <div class="model-badge" id="audioModelBadge">gemini-2.5-flash-preview-tts</div>
+            </div>
+
+            <!-- Audio Mode Toggle -->
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="ttsModeBtnEl" class="small primary" onclick="setAudioMode('tts')">Text-to-Speech</button>
+                    <button id="understandModeBtnEl" class="small" onclick="setAudioMode('understand')">Audio Understanding</button>
+                </div>
+            </div>
+
+            <!-- TTS Section -->
+            <div id="ttsSection">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>TTS Model</label>
+                        <select id="ttsModel" onchange="updateTTSModelInfo()">
+                            <option value="gemini-2.5-flash-preview-tts">Gemini 2.5 Flash TTS</option>
+                            <option value="gemini-2.5-pro-preview-tts">Gemini 2.5 Pro TTS</option>
+                        </select>
+                        <div class="model-id-ref" id="ttsModelIdRef">gemini-2.5-flash-preview-tts</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Voice</label>
+                        <select id="ttsVoice">
+                            <option value="Kore">Kore (Firm)</option>
+                            <option value="Puck">Puck (Upbeat)</option>
+                            <option value="Charon">Charon (Informative)</option>
+                            <option value="Zephyr">Zephyr (Bright)</option>
+                            <option value="Fenrir">Fenrir (Excitable)</option>
+                            <option value="Leda">Leda (Youthful)</option>
+                            <option value="Orus">Orus (Firm)</option>
+                            <option value="Aoede">Aoede (Breezy)</option>
+                            <option value="Callirrhoe">Callirrhoe (Easy-going)</option>
+                            <option value="Autonoe">Autonoe (Bright)</option>
+                            <option value="Enceladus">Enceladus (Breathy)</option>
+                            <option value="Iapetus">Iapetus (Clear)</option>
+                            <option value="Umbriel">Umbriel (Easy-going)</option>
+                            <option value="Algieba">Algieba (Smooth)</option>
+                            <option value="Despina">Despina (Smooth)</option>
+                            <option value="Erinome">Erinome (Clear)</option>
+                            <option value="Algenib">Algenib (Gravelly)</option>
+                            <option value="Rasalgethi">Rasalgethi (Informative)</option>
+                            <option value="Laomedeia">Laomedeia (Upbeat)</option>
+                            <option value="Achernar">Achernar (Soft)</option>
+                            <option value="Alnilam">Alnilam (Firm)</option>
+                            <option value="Schedar">Schedar (Even)</option>
+                            <option value="Gacrux">Gacrux (Mature)</option>
+                            <option value="Pulcherrima">Pulcherrima (Forward)</option>
+                            <option value="Achird">Achird (Friendly)</option>
+                            <option value="Zubenelgenubi">Zubenelgenubi (Casual)</option>
+                            <option value="Vindemiatrix">Vindemiatrix (Gentle)</option>
+                            <option value="Sadachbia">Sadachbia (Lively)</option>
+                            <option value="Sadaltager">Sadaltager (Knowledgeable)</option>
+                            <option value="Sulafat">Sulafat (Warm)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mode</label>
+                        <select id="ttsSpeakerMode" onchange="toggleMultiSpeaker()">
+                            <option value="single">Single Speaker</option>
+                            <option value="multi">Multi-Speaker (2 voices)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Multi-speaker config (hidden by default) -->
+                <div id="multiSpeakerConfig" class="hidden" style="background: var(--obsidian); padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--shale);">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Speaker 1 Name</label>
+                            <input type="text" id="speaker1Name" value="Speaker1" placeholder="e.g., Joe" />
+                        </div>
+                        <div class="form-group">
+                            <label>Speaker 1 Voice</label>
+                            <select id="speaker1Voice">
+                                <option value="Kore">Kore (Firm)</option>
+                                <option value="Puck">Puck (Upbeat)</option>
+                                <option value="Charon">Charon (Informative)</option>
+                                <option value="Zephyr">Zephyr (Bright)</option>
+                                <option value="Aoede">Aoede (Breezy)</option>
+                                <option value="Leda">Leda (Youthful)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Speaker 2 Name</label>
+                            <input type="text" id="speaker2Name" value="Speaker2" placeholder="e.g., Jane" />
+                        </div>
+                        <div class="form-group">
+                            <label>Speaker 2 Voice</label>
+                            <select id="speaker2Voice">
+                                <option value="Puck">Puck (Upbeat)</option>
+                                <option value="Kore">Kore (Firm)</option>
+                                <option value="Charon">Charon (Informative)</option>
+                                <option value="Zephyr">Zephyr (Bright)</option>
+                                <option value="Aoede">Aoede (Breezy)</option>
+                                <option value="Leda">Leda (Youthful)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.7rem; color: var(--amber-dim); margin-top: 0.5rem;">
+                        Format your text as: "Speaker1: Hello!\nSpeaker2: Hi there!"
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label>Text to Speak</label>
+                    <textarea id="ttsText" placeholder="Enter text to convert to speech...">Hello! Welcome to the Gemini API Tester. This is a demonstration of text-to-speech synthesis using Google's latest TTS models.</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Style Guidance (optional)</label>
+                    <input type="text" id="ttsStyle" placeholder="e.g., Say cheerfully, whisper mysteriously, speak slowly..." />
+                </div>
+
+                <div class="cost-display" id="ttsCostDisplay">
+                    <span class="label">Estimated Cost</span>
+                    <span class="value" id="ttsPricing">~$0.001</span>
+                    <a href="https://ai.google.dev/pricing" target="_blank" style="font-size: 0.6rem; color: var(--azurite); margin-left: 0.5rem;">Verify pricing ↗</a>
+                </div>
+
+                <button onclick="testTTS()" id="ttsTestBtn" class="primary">
+                    Generate Speech
+                </button>
+            </div>
+
+            <!-- Audio Understanding Section (hidden by default) -->
+            <div id="understandSection" class="hidden">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Model</label>
+                        <select id="audioUnderstandModel" onchange="updateAudioUnderstandModelInfo()">
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</option>
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                        </select>
+                        <div class="model-id-ref" id="audioUnderstandModelIdRef">gemini-2.5-flash</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Task</label>
+                        <select id="audioTask">
+                            <option value="transcribe">Transcribe</option>
+                            <option value="translate">Transcribe & Translate to English</option>
+                            <option value="summarize">Summarize Content</option>
+                            <option value="analyze">Analyze (speakers, emotions, sounds)</option>
+                            <option value="custom">Custom Prompt</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Audio File</label>
+                    <div id="audioDropZone" style="border: 2px dashed var(--shale); padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('audioFileInput').click()">
+                        <input type="file" id="audioFileInput" accept="audio/*" style="display: none;" onchange="handleAudioFile(this)" />
+                        <p style="color: var(--amber-dim); margin: 0;">Drop audio file here or click to browse</p>
+                        <p style="font-size: 0.7rem; color: var(--amber-dim); opacity: 0.6; margin-top: 0.5rem;">Supports: WAV, MP3, AAC, FLAC, OGG, AIFF (max 20MB)</p>
+                    </div>
+                    <div id="audioFileInfo" class="hidden" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--obsidian); border: 1px solid var(--shale);">
+                        <span id="audioFileName" style="color: var(--amber-text);"></span>
+                        <button onclick="clearAudioFile()" class="small" style="margin-left: 0.5rem;">Clear</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Prompt (customize task)</label>
+                    <textarea id="audioPrompt" placeholder="e.g., Transcribe this audio and identify each speaker...">Transcribe this audio file accurately.</textarea>
+                </div>
+
+                <div class="cost-display" id="audioUnderstandCostDisplay">
+                    <span class="label">Audio Input Cost</span>
+                    <span class="value" id="audioUnderstandPricing">$1.00/1M tokens</span>
+                    <span style="font-size: 0.6rem; color: var(--amber-dim); margin-left: 0.5rem;">(~32 tokens/sec)</span>
+                </div>
+
+                <button onclick="testAudioUnderstanding()" id="audioUnderstandTestBtn" class="primary">
+                    Analyze Audio
+                </button>
+            </div>
+
+            <!-- Results Section (shared) -->
+            <div class="results-section" id="audioResults">
+                <div class="result-header">
+                    <h4>Request Payload</h4>
+                </div>
+                <div class="code-block" id="audioRequest">
+                    <pre>// Awaiting execution...</pre>
+                </div>
+
+                <div class="result-header">
+                    <h4>Response</h4>
+                    <span class="status-badge hidden" id="audioStatus"></span>
+                </div>
+                <div class="code-block" id="audioResponse">
+                    <pre>// Awaiting response...</pre>
+                </div>
+
+                <!-- Audio Preview for TTS -->
+                <div class="media-preview" id="audioPreview"></div>
+
+                <!-- Text Output for Understanding -->
+                <div id="audioTextOutput" class="hidden" style="background: var(--obsidian); padding: 1rem; margin-top: 1rem; border: 1px solid var(--shale);">
+                    <h4 style="margin-bottom: 0.5rem; color: var(--amber-glow);">Transcription / Analysis</h4>
+                    <div id="audioTextResult" style="white-space: pre-wrap; line-height: 1.6;"></div>
+                </div>
+
+                <div class="result-header">
+                    <h4>Execution Log</h4>
+                </div>
+                <div class="logs" id="audioLogs"></div>
+            </div>
+        </div>
+
         <!-- Troubleshooting Panel -->
         <div id="troubleshoot-panel" class="test-panel">
             <div class="panel-header">
@@ -1411,6 +1638,19 @@ Time Period: 150 million years ago</textarea>
                 'veo-3': { pricePerSecond: 0.35 },
                 'veo-2': { pricePerSecond: 0.25 },
                 '_default': { pricePerSecond: 0.20 }
+            },
+            // TTS models - pricing per 1M tokens (input text, output audio)
+            tts: {
+                'gemini-2.5-flash-preview-tts': { inputPrice: 0.50, outputPrice: 10.00 },
+                'gemini-2.5-pro-preview-tts': { inputPrice: 1.00, outputPrice: 20.00 },
+                '_default': { inputPrice: 0.50, outputPrice: 10.00 }
+            },
+            // Audio understanding - audio input pricing per 1M tokens
+            audioInput: {
+                'gemini-2.5-flash': { audioInputPrice: 1.00 },
+                'gemini-2.5-flash-lite': { audioInputPrice: 0.30 },
+                'gemini-2.0-flash': { audioInputPrice: 0.70 },
+                '_default': { audioInputPrice: 1.00 }
             }
         };
 
@@ -1438,6 +1678,7 @@ Time Period: 150 million years ago</textarea>
             text: [],
             image: [],
             video: [],
+            tts: [],
             embedding: [],
             other: [],
             lastFetched: null,
@@ -1467,6 +1708,11 @@ Time Period: 150 million years ago</textarea>
         function detectModelType(model) {
             const name = (model.name || model.baseModelId || '').replace('models/', '').toLowerCase();
             const methods = model.supportedGenerationMethods || [];
+            
+            // TTS models (text-to-speech)
+            if (name.includes('-tts') || name.includes('tts-')) {
+                return 'tts';
+            }
             
             // Video models (Veo family)
             if (name.startsWith('veo-') || name.includes('veo')) {
@@ -2004,6 +2250,32 @@ Time Period: 150 million years ago</textarea>
             updateTextModelInfo();
             updateImageModelInfo();
             updateVideoModelInfo();
+            updateTTSModelInfo();
+            
+            // Setup audio file drag-and-drop
+            const dropZone = document.getElementById('audioDropZone');
+            if (dropZone) {
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = 'var(--amber-glow)';
+                    dropZone.style.background = 'rgba(255, 176, 0, 0.05)';
+                });
+                dropZone.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = 'var(--shale)';
+                    dropZone.style.background = 'transparent';
+                });
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.style.borderColor = 'var(--shale)';
+                    dropZone.style.background = 'transparent';
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type.startsWith('audio/')) {
+                        document.getElementById('audioFileInput').files = e.dataTransfer.files;
+                        handleAudioFile(document.getElementById('audioFileInput'));
+                    }
+                });
+            }
         });
         
         // Refresh models from API (called by refresh button or diagnostics)
@@ -2506,6 +2778,428 @@ Time Period: 150 million years ago</textarea>
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = 'Execute Generation';
+            }
+        }
+
+        // ============================================
+        // AUDIO - HELPER FUNCTIONS
+        // ============================================
+        
+        // Current audio mode ('tts' or 'understand')
+        let currentAudioMode = 'tts';
+        
+        // Store uploaded audio file data
+        let uploadedAudioData = null;
+        let uploadedAudioMimeType = null;
+        let uploadedAudioName = null;
+        
+        function setAudioMode(mode) {
+            currentAudioMode = mode;
+            const ttsSection = document.getElementById('ttsSection');
+            const understandSection = document.getElementById('understandSection');
+            const ttsModeBtn = document.getElementById('ttsModeBtnEl');
+            const understandModeBtn = document.getElementById('understandModeBtnEl');
+            
+            if (mode === 'tts') {
+                ttsSection.classList.remove('hidden');
+                understandSection.classList.add('hidden');
+                ttsModeBtn.classList.add('primary');
+                understandModeBtn.classList.remove('primary');
+                document.getElementById('audioModelBadge').textContent = document.getElementById('ttsModel').value;
+            } else {
+                ttsSection.classList.add('hidden');
+                understandSection.classList.remove('hidden');
+                ttsModeBtn.classList.remove('primary');
+                understandModeBtn.classList.add('primary');
+                document.getElementById('audioModelBadge').textContent = document.getElementById('audioUnderstandModel').value;
+            }
+        }
+        
+        function toggleMultiSpeaker() {
+            const mode = document.getElementById('ttsSpeakerMode').value;
+            const config = document.getElementById('multiSpeakerConfig');
+            if (mode === 'multi') {
+                config.classList.remove('hidden');
+            } else {
+                config.classList.add('hidden');
+            }
+        }
+        
+        function updateTTSModelInfo() {
+            const modelId = document.getElementById('ttsModel').value;
+            document.getElementById('audioModelBadge').textContent = modelId;
+            document.getElementById('ttsModelIdRef').textContent = modelId;
+            
+            // Update pricing display
+            const preset = MODEL_PRESETS.tts[modelId] || MODEL_PRESETS.tts['_default'];
+            const textLength = document.getElementById('ttsText').value.length;
+            // Rough estimate: ~4 chars per token for English
+            const estimatedTokens = Math.ceil(textLength / 4);
+            const estimatedCost = (estimatedTokens / 1000000) * (preset.inputPrice + preset.outputPrice * 10);
+            document.getElementById('ttsPricing').textContent = `~$${estimatedCost.toFixed(4)}`;
+        }
+        
+        function updateAudioUnderstandModelInfo() {
+            const modelId = document.getElementById('audioUnderstandModel').value;
+            document.getElementById('audioModelBadge').textContent = modelId;
+            document.getElementById('audioUnderstandModelIdRef').textContent = modelId;
+            
+            const preset = MODEL_PRESETS.audioInput[modelId] || MODEL_PRESETS.audioInput['_default'];
+            document.getElementById('audioUnderstandPricing').textContent = `$${preset.audioInputPrice.toFixed(2)}/1M tokens`;
+        }
+        
+        function handleAudioFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            // Check file size (20MB limit)
+            if (file.size > 20 * 1024 * 1024) {
+                alert('File too large. Maximum size is 20MB for inline audio.');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result.split(',')[1];
+                uploadedAudioData = base64;
+                uploadedAudioMimeType = file.type || 'audio/mpeg';
+                uploadedAudioName = file.name;
+                
+                document.getElementById('audioFileName').textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                document.getElementById('audioFileInfo').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function clearAudioFile() {
+            uploadedAudioData = null;
+            uploadedAudioMimeType = null;
+            uploadedAudioName = null;
+            document.getElementById('audioFileInput').value = '';
+            document.getElementById('audioFileInfo').classList.add('hidden');
+        }
+        
+        // Convert raw PCM to WAV for browser playback
+        function pcmToWav(pcmData, sampleRate = 24000, numChannels = 1, bitsPerSample = 16) {
+            const byteRate = sampleRate * numChannels * bitsPerSample / 8;
+            const blockAlign = numChannels * bitsPerSample / 8;
+            const dataSize = pcmData.length;
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+            
+            // WAV header
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+            
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true); // Subchunk1Size
+            view.setUint16(20, 1, true); // AudioFormat (PCM)
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitsPerSample, true);
+            writeString(36, 'data');
+            view.setUint32(40, dataSize, true);
+            
+            // Copy PCM data
+            const pcmView = new Uint8Array(buffer, 44);
+            pcmView.set(pcmData);
+            
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+        
+        // ============================================
+        // TEXT-TO-SPEECH GENERATION
+        // ============================================
+        async function testTTS() {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                alert('Please enter your API key first');
+                return;
+            }
+
+            const modelId = document.getElementById('ttsModel').value;
+            const voice = document.getElementById('ttsVoice').value;
+            const text = document.getElementById('ttsText').value;
+            const style = document.getElementById('ttsStyle').value;
+            const speakerMode = document.getElementById('ttsSpeakerMode').value;
+            const btn = document.getElementById('ttsTestBtn');
+
+            clearLogs('audioLogs');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Generating...';
+            setStatus('audioStatus', 'pending', 'PROCESSING');
+            document.getElementById('audioPreview').innerHTML = '';
+            document.getElementById('audioTextOutput').classList.add('hidden');
+
+            addLog('audioLogs', 'Initializing text-to-speech...', 'info');
+            addLog('audioLogs', `Model: ${modelId}`, 'info');
+            addLog('audioLogs', `Voice: ${voice}`, 'info');
+            
+            // Prepare the text with optional style guidance
+            let finalText = text;
+            if (style) {
+                finalText = `${style}: ${text}`;
+            }
+
+            // Build request body
+            let requestBody;
+            if (speakerMode === 'multi') {
+                const speaker1Name = document.getElementById('speaker1Name').value || 'Speaker1';
+                const speaker1Voice = document.getElementById('speaker1Voice').value;
+                const speaker2Name = document.getElementById('speaker2Name').value || 'Speaker2';
+                const speaker2Voice = document.getElementById('speaker2Voice').value;
+                
+                addLog('audioLogs', `Multi-speaker: ${speaker1Name}=${speaker1Voice}, ${speaker2Name}=${speaker2Voice}`, 'info');
+                
+                requestBody = {
+                    contents: [{ parts: [{ text: finalText }] }],
+                    generationConfig: {
+                        responseModalities: ['AUDIO'],
+                        speechConfig: {
+                            multiSpeakerVoiceConfig: {
+                                speakerVoiceConfigs: [
+                                    {
+                                        speaker: speaker1Name,
+                                        voiceConfig: { prebuiltVoiceConfig: { voiceName: speaker1Voice } }
+                                    },
+                                    {
+                                        speaker: speaker2Name,
+                                        voiceConfig: { prebuiltVoiceConfig: { voiceName: speaker2Voice } }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                };
+            } else {
+                requestBody = {
+                    contents: [{ parts: [{ text: finalText }] }],
+                    generationConfig: {
+                        responseModalities: ['AUDIO'],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: voice }
+                            }
+                        }
+                    }
+                };
+            }
+
+            document.getElementById('audioRequest').innerHTML = createCodeBlock('audioReq', 'Request JSON', requestBody, false);
+
+            try {
+                addLog('audioLogs', `POST ${modelId}:generateContent`, 'info');
+
+                const response = await fetch(
+                    `${GEMINI_API_BASE_URL}/models/${modelId}:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody),
+                    }
+                );
+
+                const responseData = await response.json();
+                document.getElementById('audioResponse').innerHTML = createCodeBlock('audioRes', 'Response JSON', responseData, true);
+
+                if (!response.ok) {
+                    throw new Error(`API Error ${response.status}: ${responseData.error?.message || 'Unknown error'}`);
+                }
+
+                addLog('audioLogs', `Response: ${response.status} OK`, 'success');
+
+                // Extract audio data
+                let audioData = null;
+                const candidates = responseData.candidates;
+                if (candidates && candidates.length > 0) {
+                    const parts = candidates[0].content?.parts || [];
+                    for (const part of parts) {
+                        if (part.inlineData) {
+                            const { data, mimeType } = part.inlineData;
+                            if (data) {
+                                audioData = { data, mimeType };
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (audioData) {
+                    setStatus('audioStatus', 'success', 'COMPLETE');
+                    addLog('audioLogs', `Audio generated: ${audioData.mimeType || 'audio/pcm'}`, 'success');
+                    
+                    // Decode base64 to raw bytes
+                    const rawBytes = Uint8Array.from(atob(audioData.data), c => c.charCodeAt(0));
+                    addLog('audioLogs', `Size: ${(rawBytes.length / 1024).toFixed(2)} KB`, 'info');
+                    
+                    // Convert PCM to WAV for playback
+                    const wavBlob = pcmToWav(rawBytes, 24000, 1, 16);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+                    
+                    const previewContainer = document.getElementById('audioPreview');
+                    previewContainer.innerHTML = '';
+                    
+                    const audioEl = document.createElement('audio');
+                    audioEl.controls = true;
+                    audioEl.src = audioUrl;
+                    audioEl.style.width = '100%';
+                    audioEl.style.marginTop = '1rem';
+                    previewContainer.appendChild(audioEl);
+                    
+                    // Add download button
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.textContent = 'Download Audio';
+                    downloadBtn.style.marginTop = '1rem';
+                    downloadBtn.onclick = () => {
+                        const link = document.createElement('a');
+                        link.href = audioUrl;
+                        link.download = `gemini-tts-${Date.now()}.wav`;
+                        link.click();
+                    };
+                    previewContainer.appendChild(downloadBtn);
+                    
+                    addLog('audioLogs', 'Audio ready for playback', 'success');
+                } else {
+                    setStatus('audioStatus', 'warning', 'NO AUDIO');
+                    addLog('audioLogs', 'No audio data in response', 'warning');
+                }
+
+            } catch (error) {
+                setStatus('audioStatus', 'error', 'FAILED');
+                addLog('audioLogs', `Error: ${error.message}`, 'error');
+                document.getElementById('audioResponse').innerHTML = `<pre style="color: var(--error);">${error.message}</pre>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Generate Speech';
+            }
+        }
+
+        // ============================================
+        // AUDIO UNDERSTANDING
+        // ============================================
+        async function testAudioUnderstanding() {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                alert('Please enter your API key first');
+                return;
+            }
+
+            if (!uploadedAudioData) {
+                alert('Please upload an audio file first');
+                return;
+            }
+
+            const modelId = document.getElementById('audioUnderstandModel').value;
+            const task = document.getElementById('audioTask').value;
+            let prompt = document.getElementById('audioPrompt').value;
+            const btn = document.getElementById('audioUnderstandTestBtn');
+
+            // Build task-specific prompt if not custom
+            if (task !== 'custom') {
+                const taskPrompts = {
+                    'transcribe': 'Transcribe this audio file accurately. Include punctuation and speaker labels if there are multiple speakers.',
+                    'translate': 'Transcribe and translate this audio to English. If already in English, just transcribe.',
+                    'summarize': 'Listen to this audio and provide a concise summary of the main points discussed.',
+                    'analyze': 'Analyze this audio. Identify: 1) Number of speakers, 2) Overall tone/emotion, 3) Key topics, 4) Any notable sounds or music.'
+                };
+                prompt = taskPrompts[task] || prompt;
+                document.getElementById('audioPrompt').value = prompt;
+            }
+
+            clearLogs('audioLogs');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Analyzing...';
+            setStatus('audioStatus', 'pending', 'PROCESSING');
+            document.getElementById('audioPreview').innerHTML = '';
+            document.getElementById('audioTextOutput').classList.add('hidden');
+
+            addLog('audioLogs', 'Initializing audio understanding...', 'info');
+            addLog('audioLogs', `Model: ${modelId}`, 'info');
+            addLog('audioLogs', `File: ${uploadedAudioName}`, 'info');
+            addLog('audioLogs', `Task: ${task}`, 'info');
+
+            const requestBody = {
+                contents: [{
+                    parts: [
+                        {
+                            inlineData: {
+                                mimeType: uploadedAudioMimeType,
+                                data: uploadedAudioData
+                            }
+                        },
+                        { text: prompt }
+                    ]
+                }]
+            };
+
+            // Show request but truncate the base64 data for display
+            const displayRequest = JSON.parse(JSON.stringify(requestBody));
+            displayRequest.contents[0].parts[0].inlineData.data = `[BASE64 AUDIO DATA - ${(uploadedAudioData.length * 0.75 / 1024).toFixed(1)} KB]`;
+            document.getElementById('audioRequest').innerHTML = createCodeBlock('audioReq', 'Request JSON', displayRequest, false);
+
+            try {
+                addLog('audioLogs', `POST ${modelId}:generateContent`, 'info');
+
+                const response = await fetch(
+                    `${GEMINI_API_BASE_URL}/models/${modelId}:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody),
+                    }
+                );
+
+                const responseData = await response.json();
+                document.getElementById('audioResponse').innerHTML = createCodeBlock('audioRes', 'Response JSON', responseData, true);
+
+                if (!response.ok) {
+                    throw new Error(`API Error ${response.status}: ${responseData.error?.message || 'Unknown error'}`);
+                }
+
+                addLog('audioLogs', `Response: ${response.status} OK`, 'success');
+
+                // Extract text response
+                const candidates = responseData.candidates;
+                if (candidates && candidates.length > 0) {
+                    const parts = candidates[0].content?.parts || [];
+                    const textPart = parts.find(p => p.text);
+                    
+                    if (textPart) {
+                        setStatus('audioStatus', 'success', 'COMPLETE');
+                        addLog('audioLogs', 'Analysis complete', 'success');
+                        
+                        document.getElementById('audioTextResult').textContent = textPart.text;
+                        document.getElementById('audioTextOutput').classList.remove('hidden');
+                        
+                        // Show usage if available
+                        if (responseData.usageMetadata) {
+                            const usage = responseData.usageMetadata;
+                            addLog('audioLogs', `Tokens: ${usage.promptTokenCount} in, ${usage.candidatesTokenCount} out`, 'info');
+                        }
+                    } else {
+                        setStatus('audioStatus', 'warning', 'NO TEXT');
+                        addLog('audioLogs', 'No text in response', 'warning');
+                    }
+                } else {
+                    setStatus('audioStatus', 'warning', 'NO RESPONSE');
+                    addLog('audioLogs', 'No candidates in response', 'warning');
+                }
+
+            } catch (error) {
+                setStatus('audioStatus', 'error', 'FAILED');
+                addLog('audioLogs', `Error: ${error.message}`, 'error');
+                document.getElementById('audioResponse').innerHTML = `<pre style="color: var(--error);">${error.message}</pre>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Analyze Audio';
             }
         }
 
