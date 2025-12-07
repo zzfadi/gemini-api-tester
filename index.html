@@ -6,6 +6,17 @@
     <title>Gemini API Tester</title>
     <meta name="description" content="Gemini API Tester — Test Gemini & Veo APIs">
     
+    <!-- Security: Restrict resources to same origin and trusted sources -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline';
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+        img-src 'self' data: blob:;
+        media-src 'self' blob:;
+        connect-src 'self' https://generativelanguage.googleapis.com;
+    ">
+    
     <!-- Distinctive fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2673,6 +2684,21 @@ Time Period: 150 million years ago</textarea>
         // ============================================
         // UTILITY FUNCTIONS
         // ============================================
+        // SECURITY UTILITIES
+        // ============================================
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // ============================================
+        // API KEY HELPERS
+        // ============================================
         function getApiKey() {
             return document.getElementById('apiKey').value.trim();
         }
@@ -2702,10 +2728,13 @@ Time Period: 150 million years ago</textarea>
         function createCodeBlock(id, title, content, collapsed = false) {
             const truncated = truncateBase64(content);
             const jsonStr = typeof truncated === 'string' ? truncated : JSON.stringify(truncated, null, 2);
+            // Escape HTML to prevent XSS from API responses
+            const escapedJson = escapeHtml(jsonStr);
+            const escapedTitle = escapeHtml(title);
             
             return `
                 <div class="code-header">
-                    <h5>${title}</h5>
+                    <h5>${escapedTitle}</h5>
                     <div class="code-actions">
                         <button onclick="toggleCodeBlock('${id}')" id="${id}-toggle">
                             ${collapsed ? 'Expand' : 'Collapse'}
@@ -2714,7 +2743,7 @@ Time Period: 150 million years ago</textarea>
                     </div>
                 </div>
                 <div class="code-content ${collapsed ? 'collapsed' : ''}" id="${id}-content">
-                    <pre id="${id}-pre">${jsonStr}</pre>
+                    <pre id="${id}-pre">${escapedJson}</pre>
                 </div>
             `;
         }
@@ -2804,7 +2833,8 @@ Time Period: 150 million years ago</textarea>
             const logs = document.getElementById(logsId);
             const entry = document.createElement('div');
             entry.className = `log-entry ${type}`;
-            entry.innerHTML = `<span class="log-timestamp">${getTimestamp()}</span><span>${message}</span>`;
+            // Escape message to prevent XSS
+            entry.innerHTML = `<span class="log-timestamp">${getTimestamp()}</span><span>${escapeHtml(message)}</span>`;
             logs.appendChild(entry);
             logs.scrollTop = logs.scrollHeight;
         }
@@ -3059,7 +3089,7 @@ Time Period: 150 million years ago</textarea>
                 }, 2000);
 
             } catch (error) {
-                resultEl.innerHTML = `<span style="color: var(--error);">✗ ${error.message}</span>`;
+                resultEl.innerHTML = `<span style="color: var(--error);">✗ ${escapeHtml(error.message)}</span>`;
                 btn.innerHTML = '▶ Connect';
                 btn.disabled = false;
             }
@@ -3540,11 +3570,11 @@ Time Period: 150 million years ago</textarea>
                 // Display safety ratings
                 if (safetyRatings && safetyRatings.length > 0) {
                     const ratingsHtml = safetyRatings.map(r => {
-                        const prob = r.probability || 'NEGLIGIBLE';
-                        const category = (r.category || '').replace('HARM_CATEGORY_', '').toLowerCase();
+                        const prob = escapeHtml(r.probability || 'NEGLIGIBLE');
+                        const category = escapeHtml((r.category || '').replace('HARM_CATEGORY_', '').toLowerCase());
                         const level = prob === 'NEGLIGIBLE' ? 'safe' : prob === 'LOW' ? 'low' : 
                             prob === 'MEDIUM' ? 'medium' : 'high';
-                        return `<span class="safety-rating ${level}">${category}: ${prob}</span>`;
+                        return `<span class="safety-rating ${escapeHtml(level)}">${category}: ${prob}</span>`;
                     }).join('');
                     document.getElementById('textSafetyRatings').innerHTML = ratingsHtml;
                     document.getElementById('textResponseMetadata').classList.remove('hidden');
@@ -3924,7 +3954,7 @@ Time Period: 150 million years ago</textarea>
             } catch (error) {
                 setStatus('audioStatus', 'error', 'FAILED');
                 addLog('audioLogs', `Error: ${error.message}`, 'error');
-                document.getElementById('audioResponse').innerHTML = `<pre style="color: var(--error);">${error.message}</pre>`;
+                document.getElementById('audioResponse').innerHTML = `<pre style="color: var(--error);">${escapeHtml(error.message)}</pre>`;
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = 'Generate Speech';
@@ -4056,7 +4086,7 @@ Time Period: 150 million years ago</textarea>
             } catch (error) {
                 setStatus('audioStatus', 'error', 'FAILED');
                 addLog('audioLogs', `Error: ${error.message}`, 'error');
-                document.getElementById('audioResponse').innerHTML = `<pre style="color: var(--error);">${error.message}</pre>`;
+                document.getElementById('audioResponse').innerHTML = `<pre style="color: var(--error);">${escapeHtml(error.message)}</pre>`;
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = 'Analyze Audio';
@@ -4192,7 +4222,7 @@ Time Period: 150 million years ago</textarea>
             } catch (error) {
                 setStatus('embeddingStatus', 'error', 'FAILED');
                 addLog('embeddingLogs', `Error: ${error.message}`, 'error');
-                document.getElementById('embeddingResponse').innerHTML = `<pre style="color: var(--error);">${error.message}</pre>`;
+                document.getElementById('embeddingResponse').innerHTML = `<pre style="color: var(--error);">${escapeHtml(error.message)}</pre>`;
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = 'Generate Embedding';
@@ -4229,7 +4259,7 @@ Time Period: 150 million years ago</textarea>
             const addDiagLog = (msg, type = 'info') => {
                 const entry = document.createElement('div');
                 entry.className = `log-entry ${type}`;
-                entry.innerHTML = `<span class="log-timestamp">${getTimestamp()}</span><span>${msg}</span>`;
+                entry.innerHTML = `<span class="log-timestamp">${getTimestamp()}</span><span>${escapeHtml(msg)}</span>`;
                 logs.appendChild(entry);
                 logs.scrollTop = logs.scrollHeight;
             };
@@ -4312,7 +4342,7 @@ Time Period: 150 million years ago</textarea>
             const addModelLog = (msg, type = 'info') => {
                 const entry = document.createElement('div');
                 entry.className = `log-entry ${type}`;
-                entry.innerHTML = `<span>${msg}</span>`;
+                entry.innerHTML = `<span>${escapeHtml(msg)}</span>`;
                 logs.appendChild(entry);
             };
 

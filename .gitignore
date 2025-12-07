@@ -53,3 +53,5 @@ dist-ssr/
 # User-specific API keys (never commit these)
 api-keys.txt
 secrets.txt
+.claude/
+.playwright-mcp/
