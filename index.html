@@ -9,10 +9,14 @@
     <!-- Distinctive fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        :root {
+        /* ============================================
+           THEME: Amber CRT (Default)
+           Warm retro terminal aesthetic
+           ============================================ */
+        :root, [data-theme="amber"] {
             /* Amber CRT palette */
             --amber-glow: #ffb000;
             --amber-dim: #cc8800;
@@ -40,6 +44,113 @@
             /* Typography */
             --font-mono: 'IBM Plex Mono', 'Fira Code', monospace;
             --font-display: 'Instrument Serif', Georgia, serif;
+            
+            /* Theme-specific */
+            --scanline-opacity: 0.015;
+            --noise-opacity: 0.03;
+            --glow-color: rgba(255, 176, 0, 0.3);
+        }
+        
+        /* ============================================
+           THEME: Polar Aurora
+           Cool arctic research station aesthetic
+           ============================================ */
+        [data-theme="polar"] {
+            /* Aurora palette */
+            --amber-glow: #00e5ff;
+            --amber-dim: #0097a7;
+            --amber-bright: #84ffff;
+            --amber-text: #e0f7fa;
+            
+            /* Deep arctic darks */
+            --obsidian: #0a1929;
+            --basalt: #0d2137;
+            --slate: #102a43;
+            --shale: #1a3a52;
+            
+            /* Aurora accents */
+            --malachite: #00e676;
+            --azurite: #00b0ff;
+            --cinnabar: #ff5252;
+            --sulfur: #ffea00;
+            
+            /* Functional */
+            --success: var(--malachite);
+            --warning: var(--sulfur);
+            --error: var(--cinnabar);
+            --info: var(--azurite);
+            
+            /* Typography - modern geometric */
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-display: 'Space Grotesk', 'Helvetica Neue', sans-serif;
+            
+            /* Theme-specific */
+            --scanline-opacity: 0;
+            --noise-opacity: 0.015;
+            --glow-color: rgba(0, 229, 255, 0.25);
+        }
+        
+        /* Polar theme removes scanlines for cleaner look */
+        [data-theme="polar"] body::before {
+            opacity: 0;
+        }
+        
+        /* Polar theme aurora gradient on header */
+        [data-theme="polar"] header {
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.05) 0%, rgba(0, 230, 118, 0.03) 50%, rgba(156, 39, 176, 0.03) 100%);
+            border-radius: 0 0 2rem 2rem;
+            margin: -2rem -1.5rem 0;
+            padding: 3rem 1.5rem 2.5rem;
+        }
+        
+        /* Polar theme button style */
+        [data-theme="polar"] button.primary {
+            background: linear-gradient(135deg, var(--amber-glow), var(--azurite));
+            border: none;
+        }
+        
+        [data-theme="polar"] button.primary:hover {
+            background: linear-gradient(135deg, var(--amber-bright), var(--amber-glow));
+        }
+        
+        /* Polar theme model badge */
+        [data-theme="polar"] .model-badge {
+            background: rgba(0, 229, 255, 0.1);
+            border-color: var(--amber-glow);
+            color: var(--amber-glow);
+        }
+        
+        [data-theme="polar"] .model-badge::before {
+            background: var(--amber-glow);
+        }
+        
+        /* Theme toggle button */
+        .theme-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: transparent;
+            border: 1px solid var(--amber-dim);
+            color: var(--amber-glow);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(255, 176, 0, 0.1);
+            transform: rotate(15deg);
+        }
+        
+        [data-theme="polar"] .theme-toggle:hover {
+            background: rgba(0, 229, 255, 0.1);
         }
 
         * {
@@ -873,6 +984,7 @@
     
     <div class="container">
         <header>
+            <button class="theme-toggle" onclick="toggleTheme()" title="Switch theme" id="themeToggleBtn">☀</button>
             <div class="logo-mark">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
@@ -1592,7 +1704,9 @@ Time Period: 150 million years ago</textarea>
                 <a href="https://ai.google.dev/gemini-api/docs" target="_blank">API Docs</a> · 
                 <a href="https://ai.google.dev/pricing" target="_blank">Pricing</a> · 
                 <a href="https://aistudio.google.com/" target="_blank">Get API Key</a> · 
-                <a href="https://ai.google.dev/gemini-api/docs/models/gemini" target="_blank">Models</a>
+                <a href="https://ai.google.dev/gemini-api/docs/models/gemini" target="_blank">Models</a> · 
+                <a href="https://github.com/zzfadi/gemini-api-tester" target="_blank">GitHub</a> · 
+                <a href="https://github.com/zzfadi/gemini-api-tester/issues" target="_blank">Report Issue</a>
             </p>
         </footer>
     </div>
@@ -2062,6 +2176,39 @@ Time Period: 150 million years ago</textarea>
             });
         }
 
+        // ============================================
+        // THEME TOGGLE
+        // ============================================
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('themeToggleBtn');
+            const currentTheme = html.getAttribute('data-theme') || 'amber';
+            
+            if (currentTheme === 'amber') {
+                html.setAttribute('data-theme', 'polar');
+                btn.textContent = '❄';
+                btn.title = 'Switch to Amber CRT theme';
+                localStorage.setItem('theme', 'polar');
+            } else {
+                html.setAttribute('data-theme', 'amber');
+                btn.textContent = '☀';
+                btn.title = 'Switch to Polar Aurora theme';
+                localStorage.setItem('theme', 'amber');
+            }
+        }
+        
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const btn = document.getElementById('themeToggleBtn');
+            if (savedTheme === 'polar') {
+                document.documentElement.setAttribute('data-theme', 'polar');
+                if (btn) btn.textContent = '❄';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'amber');
+                if (btn) btn.textContent = '☀';
+            }
+        }
+
         function toggleApiKey() {
             const input = document.getElementById('apiKey');
             const btn = document.getElementById('toggleKeyBtn');
@@ -2215,6 +2362,7 @@ Time Period: 150 million years ago</textarea>
 
         // Initialize on load
         window.addEventListener('DOMContentLoaded', async () => {
+            loadSavedTheme();
             loadSavedApiKey();
             
             // Save API key when it changes
