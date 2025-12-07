@@ -8,6 +8,19 @@ A simple, web-based testing console for Google's Gemini and Veo AI APIs. Built f
 
 ---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="screenshots/0.png" alt="Image Generation" width="45%" />
+  <img src="screenshots/1.png" alt="Video Generation" width="45%" />
+</p>
+<p align="center">
+  <img src="screenshots/2.png" alt="Text Generation" width="45%" />
+  <img src="screenshots/3.png" alt="Diagnostics" width="45%" />
+</p>
+
+---
+
 ## ✨ Features
 
 ### 🖼️ **Image Generation**
