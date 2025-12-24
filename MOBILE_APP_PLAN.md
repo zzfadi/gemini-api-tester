@@ -801,6 +801,261 @@ dev_dependencies:
 
 ---
 
+## 14. Apple Intelligence Integration Strategy
+
+### Overview
+
+Apple announced the **Foundation Models framework** at WWDC 2025, providing developers direct access to Apple's on-device ~3B parameter LLM. This opens significant opportunities but requires a separate native Swift app due to platform restrictions.
+
+### What's Available from Apple
+
+| Feature | Description | Access |
+|---------|-------------|--------|
+| **Foundation Models** | ~3B parameter on-device LLM | Swift-only, iOS 26+ |
+| **Capabilities** | Summarization, entity extraction, tool calling, guided generation | `FoundationModels` framework |
+| **Context Window** | 4,096 tokens (flexible input/output split) | On-device |
+| **Cost** | **Free** - no API fees | Unlimited inference |
+| **Private Cloud Compute** | Larger models for complex tasks | Automatic routing |
+| **Xcode 26 AI** | ChatGPT integration, Swift Assist | Developer tools |
+
+### Key Technical Details
+
+```swift
+// Minimal Foundation Models Integration (3 lines!)
+import FoundationModels
+
+let model = SystemLanguageModel.default
+let response = try await model.respond(to: "Summarize this text...")
+```
+
+**Guided Generation with Swift Macros:**
+```swift
+@Generable
+struct MovieReview {
+    @Guide(description: "Sentiment: positive, negative, or neutral")
+    var sentiment: String
+
+    @Guide(description: "Rating from 1-5")
+    var rating: Int
+
+    @Guide(description: "Brief summary")
+    var summary: String
+}
+
+// Type-safe structured output
+let review: MovieReview = try await model.respond(to: reviewText)
+```
+
+### Recommended Architecture: Two Separate Apps
+
+Due to fundamental platform differences, we recommend **two separate apps**:
+
+#### App 1: On-Device AI Tester (This Document)
+- **Platform:** Flutter (Android + iOS)
+- **Models:** Open-source (Llama, Gemma, Phi, Whisper)
+- **Engine:** llama.cpp, TensorFlow Lite, ONNX
+- **Target:** Developers testing any on-device model
+- **Distribution:** Google Play + App Store
+
+#### App 2: Apple Intelligence Studio (Separate Project)
+- **Platform:** Native Swift (iOS/iPadOS/macOS only)
+- **Models:** Apple Foundation Models + Apple Intelligence features
+- **Engine:** Apple's FoundationModels framework
+- **Target:** Apple ecosystem developers
+- **Distribution:** App Store only
+
+### Why Separate Apps?
+
+| Factor | Flutter App | Native Swift App |
+|--------|-------------|------------------|
+| **Apple Foundation Models** | ❌ Not accessible | ✅ Direct access |
+| **Android Support** | ✅ Yes | ❌ No |
+| **Open-source LLMs** | ✅ Full support | ⚠️ Redundant |
+| **App Generation** | ❌ Can't run code | ✅ Possible with Xcode |
+| **Writing Tools API** | ❌ No | ✅ Yes |
+| **Siri Integration** | ❌ Limited | ✅ Full App Intents |
+| **Image Playground** | ❌ No | ✅ Yes |
+
+### Apple Intelligence Studio - Feature Vision
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   APPLE INTELLIGENCE STUDIO                      │
+├─────────────────────────────────────────────────────────────────┤
+│  [Foundation Models] [Writing Tools] [Image Gen] [App Builder]  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  🧠 FOUNDATION MODELS PLAYGROUND                                │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ Task: [Summarize ▼]                                      │   │
+│  │                                                          │   │
+│  │ Input:                                                   │   │
+│  │ ┌──────────────────────────────────────────────────────┐│   │
+│  │ │ [Paste or type text to process...]                   ││   │
+│  │ └──────────────────────────────────────────────────────┘│   │
+│  │                                                          │   │
+│  │ Structured Output: [MovieReview ▼]                       │   │
+│  │ ☑ Use Guided Generation                                  │   │
+│  │                                                          │   │
+│  │ [Run On-Device] [Run with Private Cloud Compute]         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  📊 RESULTS                                                     │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ {                                                        │   │
+│  │   "sentiment": "positive",                               │   │
+│  │   "rating": 4,                                           │   │
+│  │   "summary": "An engaging thriller with..."              │   │
+│  │ }                                                        │   │
+│  │ ⚡ 45ms • On-Device • 128 tokens                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  🛠️ APP BUILDER (Experimental)                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ Describe your app idea:                                  │   │
+│  │ "Create a simple todo list app with categories"          │   │
+│  │                                                          │   │
+│  │ [Generate SwiftUI Code] [Preview] [Export to Xcode]      │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### App Builder Concept (Long-term Vision)
+
+The "app that creates apps" concept would leverage:
+
+1. **Apple Foundation Models** - For understanding natural language app descriptions
+2. **Swift Assist patterns** - Code generation templates
+3. **SwiftUI** - Declarative UI that's easier to generate
+4. **Xcode integration** - Export generated projects
+
+**Realistic Scope:**
+- Generate simple SwiftUI views and components
+- Create basic CRUD apps from descriptions
+- Prototype UI layouts
+- NOT full production apps (3B model limitations)
+
+**For complex app generation**, the app would need to:
+- Use Private Cloud Compute for larger context
+- Integrate with cloud LLMs (Claude, GPT-4) for complex logic
+- Provide templates and scaffolding
+
+### Implementation Approach for Apple Intelligence Studio
+
+```
+apple_intelligence_studio/
+├── Sources/
+│   ├── App/
+│   │   └── AppleIntelligenceStudioApp.swift
+│   ├── Features/
+│   │   ├── FoundationModels/
+│   │   │   ├── FoundationModelsView.swift
+│   │   │   ├── GuidedGenerationView.swift
+│   │   │   ├── ToolCallingView.swift
+│   │   │   └── Models/
+│   │   │       └── GenerableTypes.swift
+│   │   ├── WritingTools/
+│   │   │   ├── WritingToolsView.swift
+│   │   │   └── TextTransformations.swift
+│   │   ├── ImagePlayground/
+│   │   │   └── ImageGenerationView.swift
+│   │   ├── AppBuilder/
+│   │   │   ├── AppBuilderView.swift
+│   │   │   ├── CodeGeneratorService.swift
+│   │   │   ├── SwiftUIPreview.swift
+│   │   │   └── Templates/
+│   │   └── Benchmarks/
+│   │       └── PerformanceView.swift
+│   ├── Services/
+│   │   ├── FoundationModelService.swift
+│   │   ├── AppIntentsService.swift
+│   │   └── ExportService.swift
+│   └── Shared/
+├── Tests/
+└── Package.swift
+```
+
+### Apple Intelligence Studio - Tech Stack
+
+```swift
+// Package.swift dependencies
+dependencies: [
+    // Apple Frameworks (built-in iOS 26+)
+    // - FoundationModels
+    // - AppIntents
+    // - ImagePlayground
+
+    // Third-party
+    .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "1.0.0"),
+    .package(url: "https://github.com/gonzalezreal/swift-markdown-ui", from: "2.0.0"),
+    .package(url: "https://github.com/mi12labs/SwiftAI", from: "1.0.0"), // Multi-provider support
+]
+```
+
+### Development Timeline for Apple Intelligence Studio
+
+| Phase | Focus | Duration |
+|-------|-------|----------|
+| **Phase 1** | Foundation Models playground, basic prompts | 2-3 weeks |
+| **Phase 2** | Guided generation, structured outputs | 2-3 weeks |
+| **Phase 3** | Tool calling, Writing Tools integration | 2-3 weeks |
+| **Phase 4** | App Builder prototype (simple components) | 4-6 weeks |
+| **Phase 5** | Xcode export, templates, polish | 3-4 weeks |
+
+### Requirements for Apple Intelligence Studio
+
+| Requirement | Minimum |
+|-------------|---------|
+| **iOS** | 26.0+ |
+| **macOS** | 26.0+ (Sequoia successor) |
+| **Xcode** | 26.0+ |
+| **Device** | iPhone 15 Pro+ / M1 Mac+ |
+| **Apple Intelligence** | Must be enabled |
+
+---
+
+## 15. Unified Vision: Project Relationship
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     ON-DEVICE AI ECOSYSTEM                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────────────┐    ┌─────────────────────────────┐ │
+│  │   ON-DEVICE AI TESTER   │    │  APPLE INTELLIGENCE STUDIO  │ │
+│  │      (Flutter App)      │    │      (Native Swift App)     │ │
+│  ├─────────────────────────┤    ├─────────────────────────────┤ │
+│  │ • Android + iOS         │    │ • iOS/macOS only            │ │
+│  │ • Open-source models    │    │ • Apple Foundation Models   │ │
+│  │ • Llama, Gemma, Phi     │    │ • Writing Tools API         │ │
+│  │ • Whisper, MobileNet    │    │ • Image Playground          │ │
+│  │ • llama.cpp / GGUF      │    │ • App Builder (future)      │ │
+│  │ • Hugging Face Hub      │    │ • Siri/Shortcuts            │ │
+│  └─────────────────────────┘    └─────────────────────────────┘ │
+│              │                              │                    │
+│              └──────────────┬───────────────┘                    │
+│                             │                                    │
+│                    Shared Concepts:                              │
+│              • Model benchmarking                                │
+│              • Inference metrics                                 │
+│              • Privacy-first design                              │
+│              • Offline-capable                                   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Shared Code Opportunities
+
+While the apps must be separate, some components could be shared:
+
+1. **Benchmarking logic** - Performance measurement patterns
+2. **UI/UX patterns** - Similar design language
+3. **Documentation** - Unified user guides
+4. **Model comparison data** - Cross-reference results
+
+---
+
 ## References & Sources
 
 ### On-Device ML Frameworks
@@ -828,3 +1083,14 @@ dev_dependencies:
 - [MLC LLM GitHub](https://github.com/mlc-ai/mlc-llm)
 - [Android SDK Documentation](https://llm.mlc.ai/docs/deploy/android.html)
 - [iOS Swift SDK Documentation](https://llm.mlc.ai/docs/deploy/ios.html)
+
+### Apple Intelligence & Foundation Models
+- [Apple Intelligence Developer Portal](https://developer.apple.com/apple-intelligence/)
+- [Foundation Models Documentation](https://developer.apple.com/documentation/foundationmodels)
+- [Apple Foundation Models Research](https://machinelearning.apple.com/research/introducing-apple-foundation-models)
+- [Foundation Models Tech Report 2025](https://machinelearning.apple.com/research/apple-foundation-models-tech-report-2025)
+- [WWDC 2025: Foundation Models Code-along](https://developer.apple.com/videos/play/wwdc2025/259/)
+- [Apple Foundation Models Framework Tutorial](https://www.iphonedevelopers.co.uk/2025/07/apple-foundation-models-ios-tutorial.html)
+- [Exploring the Foundation Models Framework](https://www.createwithswift.com/exploring-the-foundation-models-framework/)
+- [Private Cloud Compute Security](https://security.apple.com/blog/private-cloud-compute/)
+- [SwiftAI Library](https://github.com/mi12labs/SwiftAI)
